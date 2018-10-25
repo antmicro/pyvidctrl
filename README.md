@@ -5,6 +5,7 @@ It queries user-controls from the v4l2 devices and creates a TUI to display and 
 
 Features vi-like keybindings.
 
+![](img/shot.png)
 
 ## Keybindings
 
