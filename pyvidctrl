@@ -1,0 +1,240 @@
+#!/usr/bin/env python2
+
+import v4l2
+import fcntl
+import curses
+import curses.textpad
+
+
+def queryCtrls(dev):
+    ctrls = []
+
+    ctrl = v4l2.v4l2_queryctrl()
+    ctrl.id = v4l2.V4L2_CID_BASE
+
+    while True:
+        try:
+            fcntl.ioctl(dev, v4l2.VIDIOC_QUERYCTRL, ctrl)
+        except Exception:
+            return ctrls
+
+        if not ctrl.flags & v4l2.V4L2_CTRL_FLAG_DISABLED and \
+                ctrl.type in \
+                (v4l2.V4L2_CTRL_TYPE_INTEGER, v4l2.V4L2_CTRL_TYPE_INTEGER64):
+            ctrls.append(ctrl)
+
+            ctrl = v4l2.v4l2_queryctrl()
+            ctrl.id = ctrls[-1].id
+
+        ctrl.id |= v4l2.V4L2_CTRL_FLAG_NEXT_CTRL
+
+    return ctrls
+
+
+def getCtrl(dev, ctrl):
+    gctrl = v4l2.v4l2_control()
+
+    gctrl.id = ctrl.id
+
+    try:
+        fcntl.ioctl(dev, v4l2.VIDIOC_G_CTRL, gctrl)
+        return gctrl.value
+    except Exception:
+        return None
+
+
+def setCtrl(dev, ctrl, value):
+    sctrl = v4l2.v4l2_control()
+
+    sctrl.id = ctrl.id
+    sctrl.value = value
+    try:
+        fcntl.ioctl(dev, v4l2.VIDIOC_S_CTRL, sctrl)
+    except Exception:
+        pass
+
+
+class pyVidController:
+    def __init__(self, dev):
+        self.win = curses.initscr()
+        curses.start_color()
+
+        curses.init_pair(1, curses.COLOR_BLUE, curses.COLOR_BLUE)
+        curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_CYAN)
+
+        curses.init_pair(3, curses.COLOR_BLUE, curses.COLOR_BLACK)
+        curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_BLACK)
+
+        curses.noecho()
+        curses.cbreak()
+        curses.curs_set(False)
+        self.win.keypad(True)
+        self.h, self.w = self.win.getmaxyx()
+
+        self.dev = dev
+        self.ctrls = queryCtrls(dev)
+
+        self.selected = 0
+        self.selected_max = 0
+        self.selected_ctrl = None
+
+        self.displayed_from = 0
+        self.last_visible = 0
+
+    def getch(self):
+        return self.win.getch()
+
+    def draw(self):
+        self.h, self.w = self.win.getmaxyx()
+
+        self.win.clear()
+        self.win.addstr(0, 0, "pyVidController")
+
+        maxl = 20
+
+        for c in self.ctrls:
+            maxl = max(maxl, len(c.name) + 3)
+
+        if self.w < maxl + 14:
+            maxl = self.w - 14
+
+        i = 0
+        j = 0
+        for c in self.ctrls:
+
+            if self.displayed_from > i:
+                i += 1
+                continue
+
+            if self.selected == i:
+                self.selected_ctrl = c
+                color = 3
+            else:
+                color = 4
+
+            try:
+                value = getCtrl(self.dev, c)
+                total_value = c.maximum - c.minimum
+                barWidth = (self.w - 2 - (3 + maxl))
+
+                percent = (value - c.minimum) * 100 / total_value
+
+                barFilledWidth = int((percent / 100.0) * barWidth)
+                barFilled = " " * barFilledWidth
+                barPadding = " " * (barWidth - barFilledWidth)
+            except Exception:
+                continue
+
+            pos = (j + 1) * 2
+            self.selected_max = i
+            i += 1
+            j += 1
+
+            if pos >= self.h:
+                continue
+
+            self.last_visible = self.selected_max
+
+            self.win.addstr(pos,
+                            3,
+                            c.name[:maxl],
+                            curses.color_pair(color))
+
+            self.win.addstr(pos,
+                            3 + maxl,
+                            barFilled,
+                            curses.color_pair(1))
+
+            self.win.addstr(pos,
+                            3 + maxl + barFilledWidth,
+                            barPadding,
+                            curses.color_pair(2))
+
+    def __selected_limit__(self):
+        if self.selected < 0:
+            self.selected = self.selected_max
+            self.displayed_from = self.selected_max - self.last_visible
+        elif self.selected > self.selected_max:
+            self.selected = 0
+            self.displayed_from = 0
+
+    def next(self):
+        self.selected += 1
+        self.__selected_limit__()
+
+        if self.last_visible < self.selected:
+            self.displayed_from += 1
+
+    def prev(self):
+        self.selected -= 1
+        self.__selected_limit__()
+
+        if self.selected < self.displayed_from:
+            self.displayed_from -= 1
+
+    def inc(self, delta):
+        value = getCtrl(self.dev, self.selected_ctrl)
+
+        total_span = (self.selected_ctrl.maximum - self.selected_ctrl.minimum)
+
+        one_percent = total_span / 100.0
+
+        inc = int(delta * one_percent)
+
+        if inc == 0:
+            if delta > 0:
+                inc = 1
+            else:
+                inc = -1
+            inc *= self.selected_ctrl.step
+
+        value += inc
+
+        while (value - self.selected_ctrl.minimum) % self.selected_ctrl.step:
+            value += 1
+
+        if value < self.selected_ctrl.minimum:
+            value = self.selected_ctrl.minimum
+        elif value > self.selected_ctrl.maximum:
+            value = self.selected_ctrl.maximum
+
+        setCtrl(self.dev, self.selected_ctrl, value)
+
+    def end(self):
+        curses.nocbreak()
+        self.win.keypad(False)
+        curses.echo()
+        curses.endwin()
+
+
+dev = open('/dev/video0', 'rw')
+
+vctrl = pyVidController(dev)
+
+while True:
+    vctrl.draw()
+    c = vctrl.getch()
+    if c == ord('q'):
+        break
+    elif c == ord('j'):
+        vctrl.next()
+    elif c == ord('k'):
+        vctrl.prev()
+    elif c == ord('u'):
+        vctrl.inc(-0.1)
+    elif c == ord('p'):
+        vctrl.inc(0.1)
+    elif c == ord('U'):
+        vctrl.inc(-0.5)
+    elif c == ord('P'):
+        vctrl.inc(0.5)
+    elif c == ord('h'):
+        vctrl.inc(-1)
+    elif c == ord('l'):
+        vctrl.inc(1)
+    elif c == ord('H'):
+        vctrl.inc(-10)
+    elif c == ord('L'):
+        vctrl.inc(10)
+
+vctrl.end()
