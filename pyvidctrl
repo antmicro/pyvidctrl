@@ -4,7 +4,7 @@ import v4l2
 import fcntl
 import curses
 import curses.textpad
-
+import sys
 
 def queryCtrls(dev):
     ctrls = []
@@ -71,6 +71,8 @@ class pyVidController:
         self.win.keypad(True)
         self.h, self.w = self.win.getmaxyx()
 
+        self.check_term_size()
+
         self.dev = dev
         self.ctrls = queryCtrls(dev)
 
@@ -81,11 +83,20 @@ class pyVidController:
         self.displayed_from = 0
         self.last_visible = 0
 
+    def check_term_size(self):
+        # assume minimal terminal width
+        if self.w < 50:
+            self.end()
+            print "Terminal too narrow", self.w, self.h
+            sys.exit(1)
+
     def getch(self):
         return self.win.getch()
 
     def draw(self):
         self.h, self.w = self.win.getmaxyx()
+
+        self.check_term_size()
 
         self.win.clear()
         self.win.addstr(0, 0, "pyVidController")
