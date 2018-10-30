@@ -84,6 +84,10 @@ class pyVidController:
         self.displayed_from = 0
         self.last_visible = 0
 
+        self.in_help = False
+
+        self.key_handlers = {}
+
     def check_term_size(self):
         # assume minimal terminal width
         if self.w < 50:
@@ -94,13 +98,27 @@ class pyVidController:
     def getch(self):
         return self.win.getch()
 
+    def toggle_help(self):
+        self.in_help = not self.in_help
+
+    def draw_help(self):
+        pos = 2
+        for k in self.key_handlers.keys():
+            self.win.addstr(pos, 3, k, curses.color_pair(2))
+            self.win.addstr(pos, 5, self.key_handlers[k][0], curses.color_pair(3))
+            pos += 1
+
     def draw(self):
         self.h, self.w = self.win.getmaxyx()
 
         self.check_term_size()
 
         self.win.clear()
-        self.win.addstr(0, 0, "pyVidController")
+        self.win.addstr(0, 0, "pyVidController - press ? for help")
+
+        if self.in_help:
+            self.draw_help()
+            return
 
         maxl = 20
 
@@ -173,6 +191,9 @@ class pyVidController:
             self.displayed_from = 0
 
     def next(self):
+        if self.in_help:
+            return
+
         self.selected += 1
         self.__selected_limit__()
 
@@ -180,6 +201,9 @@ class pyVidController:
             self.displayed_from += 1
 
     def prev(self):
+        if self.in_help:
+            return
+
         self.selected -= 1
         self.__selected_limit__()
 
@@ -187,6 +211,9 @@ class pyVidController:
             self.displayed_from -= 1
 
     def inc(self, delta):
+        if self.in_help:
+            return
+
         value = getCtrl(self.dev, self.selected_ctrl)
 
         total_span = (self.selected_ctrl.maximum - self.selected_ctrl.minimum)
@@ -225,36 +252,33 @@ dev = open('/dev/video0', 'rw')
 
 vctrl = pyVidController(dev)
 
-def sigint_handler(sig, f):
+def vidctrl_exit():
     vctrl.end()
     sys.exit(0)
 
+def sigint_handler(sig, f):
+    vidctrl_exit()
+
 signal.signal(signal.SIGINT, sigint_handler)
+
+vctrl.key_handlers = {
+        'q' : ("Exit the program", lambda: vidctrl_exit()),
+        '?' : ("Enter/Exit help",  lambda: vctrl.toggle_help()),
+        'j' : ("Next entry",       lambda: vctrl.next()),
+        'k' : ("Previous entry",   lambda: vctrl.prev()),
+        'u' : ("Decrease by 0.1%", lambda: vctrl.inc(-0.1)),
+        'U' : ("Decrease by 0.5%", lambda: vctrl.inc(-0.5)),
+        'h' : ("Decrease by 1%",   lambda: vctrl.inc(-1)),
+        'H' : ("Decrease by 10%",  lambda: vctrl.inc(-10)),
+        'p' : ("Increase by 0.1%", lambda: vctrl.inc(0.1)),
+        'P' : ("Increase by 0.5%", lambda: vctrl.inc(0.5)),
+        'l' : ("Increase by 1%",   lambda: vctrl.inc(1)),
+        'L' : ("Increase by 10%",  lambda: vctrl.inc(10)),
+        }
 
 while True:
     vctrl.draw()
-    c = vctrl.getch()
-    if c == ord('q'):
-        break
-    elif c == ord('j'):
-        vctrl.next()
-    elif c == ord('k'):
-        vctrl.prev()
-    elif c == ord('u'):
-        vctrl.inc(-0.1)
-    elif c == ord('p'):
-        vctrl.inc(0.1)
-    elif c == ord('U'):
-        vctrl.inc(-0.5)
-    elif c == ord('P'):
-        vctrl.inc(0.5)
-    elif c == ord('h'):
-        vctrl.inc(-1)
-    elif c == ord('l'):
-        vctrl.inc(1)
-    elif c == ord('H'):
-        vctrl.inc(-10)
-    elif c == ord('L'):
-        vctrl.inc(10)
+    c = chr(vctrl.getch())
 
-vctrl.end()
+    if c in vctrl.key_handlers.keys():
+            vctrl.key_handlers[c][1]()
