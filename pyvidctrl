@@ -93,7 +93,7 @@ class pyVidController:
         maxl = 20
 
         for c in self.ctrls:
-            maxl = max(maxl, len(c.name) + 3)
+            maxl = max(maxl, len(c.name) + len(str(c.maximum)) + 3)
 
         if self.w < maxl + 14:
             maxl = self.w - 14
@@ -135,9 +135,11 @@ class pyVidController:
 
             self.last_visible = self.selected_max
 
+            name = c.name + " " * (maxl - len(c.name) - len(str(value)) - 3) + str(value)
+
             self.win.addstr(pos,
                             3,
-                            c.name[:maxl],
+                            name[:maxl],
                             curses.color_pair(color))
 
             self.win.addstr(pos,
