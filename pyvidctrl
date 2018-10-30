@@ -4,6 +4,7 @@ import v4l2
 import fcntl
 import curses
 import curses.textpad
+import signal
 import sys
 
 def queryCtrls(dev):
@@ -223,6 +224,12 @@ class pyVidController:
 dev = open('/dev/video0', 'rw')
 
 vctrl = pyVidController(dev)
+
+def sigint_handler(sig, f):
+    vctrl.end()
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, sigint_handler)
 
 while True:
     vctrl.draw()
