@@ -110,10 +110,15 @@ class pyVidController:
 
     def draw_help(self):
         pos = 2
-        for k in self.key_handlers.keys():
-            self.win.addstr(pos, 3, k, curses.color_pair(2))
-            self.win.addstr(pos, 5, self.key_handlers[k].help_msg, curses.color_pair(3))
-            pos += 1
+        try:
+            for k in self.key_handlers.keys():
+                self.win.addstr(pos, 3, k, curses.color_pair(2))
+                self.win.addstr(pos, 5, self.key_handlers[k].help_msg, curses.color_pair(3))
+                pos += 1
+        except:
+            self.end()
+            print "Terminal too small to display help"
+            sys.exit(1)
 
     def draw(self):
         self.h, self.w = self.win.getmaxyx()
