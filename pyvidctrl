@@ -99,7 +99,7 @@ class pyVidController:
         # assume minimal terminal width
         if self.w < 50:
             self.end()
-            print "Terminal too narrow", self.w, self.h
+            print "Terminal too narrow"
             sys.exit(1)
 
     def getch(self):
