@@ -2,6 +2,7 @@
 
 import v4l2
 import fcntl
+import collections
 import curses
 import curses.textpad
 import signal
@@ -55,6 +56,12 @@ def setCtrl(dev, ctrl, value):
         pass
 
 
+class KeyHandler:
+    def __init__(self, help_msg, callback):
+        self.help_msg = help_msg
+        self.callback = callback
+
+
 class pyVidController:
     def __init__(self, dev):
         self.win = curses.initscr()
@@ -86,7 +93,7 @@ class pyVidController:
 
         self.in_help = False
 
-        self.key_handlers = {}
+        self.key_handlers = collections.OrderedDict()
 
     def check_term_size(self):
         # assume minimal terminal width
@@ -105,7 +112,7 @@ class pyVidController:
         pos = 2
         for k in self.key_handlers.keys():
             self.win.addstr(pos, 3, k, curses.color_pair(2))
-            self.win.addstr(pos, 5, self.key_handlers[k][0], curses.color_pair(3))
+            self.win.addstr(pos, 5, self.key_handlers[k].help_msg, curses.color_pair(3))
             pos += 1
 
     def draw(self):
@@ -261,24 +268,22 @@ def sigint_handler(sig, f):
 
 signal.signal(signal.SIGINT, sigint_handler)
 
-vctrl.key_handlers = {
-        'q' : ("Exit the program", lambda: vidctrl_exit()),
-        '?' : ("Enter/Exit help",  lambda: vctrl.toggle_help()),
-        'j' : ("Next entry",       lambda: vctrl.next()),
-        'k' : ("Previous entry",   lambda: vctrl.prev()),
-        'u' : ("Decrease by 0.1%", lambda: vctrl.inc(-0.1)),
-        'U' : ("Decrease by 0.5%", lambda: vctrl.inc(-0.5)),
-        'h' : ("Decrease by 1%",   lambda: vctrl.inc(-1)),
-        'H' : ("Decrease by 10%",  lambda: vctrl.inc(-10)),
-        'p' : ("Increase by 0.1%", lambda: vctrl.inc(0.1)),
-        'P' : ("Increase by 0.5%", lambda: vctrl.inc(0.5)),
-        'l' : ("Increase by 1%",   lambda: vctrl.inc(1)),
-        'L' : ("Increase by 10%",  lambda: vctrl.inc(10)),
-        }
+vctrl.key_handlers['q'] = KeyHandler("Exit the program", lambda: vidctrl_exit())
+vctrl.key_handlers['?'] = KeyHandler("Enter/Exit help",  lambda: vctrl.toggle_help())
+vctrl.key_handlers['j'] = KeyHandler("Next entry",       lambda: vctrl.next())
+vctrl.key_handlers['k'] = KeyHandler("Previous entry",   lambda: vctrl.prev())
+vctrl.key_handlers['u'] = KeyHandler("Decrease by 0.1%", lambda: vctrl.inc(-0.1))
+vctrl.key_handlers['U'] = KeyHandler("Decrease by 0.5%", lambda: vctrl.inc(-0.5))
+vctrl.key_handlers['h'] = KeyHandler("Decrease by 1%",   lambda: vctrl.inc(-1))
+vctrl.key_handlers['H'] = KeyHandler("Decrease by 10%",  lambda: vctrl.inc(-10))
+vctrl.key_handlers['p'] = KeyHandler("Increase by 0.1%", lambda: vctrl.inc(0.1))
+vctrl.key_handlers['P'] = KeyHandler("Increase by 0.5%", lambda: vctrl.inc(0.5))
+vctrl.key_handlers['l'] = KeyHandler("Increase by 1%",   lambda: vctrl.inc(1))
+vctrl.key_handlers['L'] = KeyHandler("Increase by 10%",  lambda: vctrl.inc(10))
 
 while True:
     vctrl.draw()
     c = chr(vctrl.getch())
 
     if c in vctrl.key_handlers.keys():
-            vctrl.key_handlers[c][1]()
+            vctrl.key_handlers[c].callback()
