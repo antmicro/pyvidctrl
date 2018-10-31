@@ -283,7 +283,10 @@ vctrl.key_handlers['L'] = KeyHandler("Increase by 10%",  lambda: vctrl.inc(10))
 
 while True:
     vctrl.draw()
-    c = chr(vctrl.getch())
+    try:
+        c = chr(vctrl.getch())
+    except:
+        continue
 
     if c in vctrl.key_handlers.keys():
             vctrl.key_handlers[c].callback()
