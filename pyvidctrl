@@ -7,6 +7,8 @@ import curses
 import curses.textpad
 import signal
 import sys
+import json
+import argparse
 
 def queryCtrls(dev):
     ctrls = []
@@ -32,6 +34,14 @@ def queryCtrls(dev):
 
     return ctrls
 
+def queryDriver(dev):
+    try:
+        cp = v4l2.v4l2_capability()
+        fcntl.ioctl(dev, v4l2.VIDIOC_QUERYCAP, cp)
+        return cp.driver
+    except:
+        return "unknown"
+
 
 def getCtrl(dev, ctrl):
     gctrl = v4l2.v4l2_control()
@@ -54,6 +64,69 @@ def setCtrl(dev, ctrl, value):
         fcntl.ioctl(dev, v4l2.VIDIOC_S_CTRL, sctrl)
     except Exception:
         pass
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument("-s", "--store", action="store_true", help="Store current parameter values")
+parser.add_argument("-r", "--restore", action="store_true", help="Restore current parameter values")
+
+args = parser.parse_args()
+
+def store_ctrls(dev):
+    ctrls = queryCtrls(dev)
+    driver = queryDriver(dev)
+
+    config = {}
+
+    for c in ctrls:
+        try:
+            config[c.name] = int(getCtrl(dev, c))
+        except:
+            continue
+
+    fname = ".pyvidctrl-" + driver
+
+    with open(fname, "w+") as f:
+        json.dump(config, f, indent=4)
+
+def restore_ctrls(dev):
+    ctrls = queryCtrls(dev)
+    driver = queryDriver(dev)
+
+    config = {}
+
+    fname = ".pyvidctrl-" + driver
+
+    try:
+        with open(fname, "r") as f:
+            config = json.load(f)
+    except:
+        print "Unable to read the config file!"
+        return
+
+    for c in ctrls:
+        if c.name not in config.keys():
+            continue
+
+        try:
+            new_value = int(config[c.name])
+            setCtrl(dev, c, new_value)
+        except:
+            print "Unable to restore", c.name
+
+dev = open('/dev/video0', 'rw')
+
+if args.store and args.restore:
+    print "Cannot store and restore values at the same time!"
+    sys.exit(1)
+elif args.store:
+    print "Storing..."
+    store_ctrls(dev)
+    sys.exit(0)
+elif args.restore:
+    print "Restoring..."
+    restore_ctrls(dev)
+    sys.exit(0)
 
 
 class KeyHandler:
@@ -260,8 +333,6 @@ class pyVidController:
         curses.endwin()
 
 
-dev = open('/dev/video0', 'rw')
-
 vctrl = pyVidController(dev)
 
 def vidctrl_exit():
@@ -285,6 +356,8 @@ vctrl.key_handlers['p'] = KeyHandler("Increase by 0.1%", lambda: vctrl.inc(0.1))
 vctrl.key_handlers['P'] = KeyHandler("Increase by 0.5%", lambda: vctrl.inc(0.5))
 vctrl.key_handlers['l'] = KeyHandler("Increase by 1%",   lambda: vctrl.inc(1))
 vctrl.key_handlers['L'] = KeyHandler("Increase by 10%",  lambda: vctrl.inc(10))
+vctrl.key_handlers['s'] = KeyHandler("Save changes",     lambda: store_ctrls(dev))
+vctrl.key_handlers['r'] = KeyHandler("Load stored",      lambda: restore_ctrls(dev))
 
 while True:
     vctrl.draw()
