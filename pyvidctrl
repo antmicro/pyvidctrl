@@ -10,7 +10,7 @@ import sys
 import json
 import argparse
 
-def queryCtrls(dev):
+def query_ctrls(dev):
     ctrls = []
 
     ctrl = v4l2.v4l2_queryctrl()
@@ -34,7 +34,7 @@ def queryCtrls(dev):
 
     return ctrls
 
-def queryDriver(dev):
+def query_driver(dev):
     try:
         cp = v4l2.v4l2_capability()
         fcntl.ioctl(dev, v4l2.VIDIOC_QUERYCAP, cp)
@@ -43,7 +43,7 @@ def queryDriver(dev):
         return "unknown"
 
 
-def getCtrl(dev, ctrl):
+def get_ctrl(dev, ctrl):
     gctrl = v4l2.v4l2_control()
 
     gctrl.id = ctrl.id
@@ -55,7 +55,7 @@ def getCtrl(dev, ctrl):
         return None
 
 
-def setCtrl(dev, ctrl, value):
+def set_ctrl(dev, ctrl, value):
     sctrl = v4l2.v4l2_control()
 
     sctrl.id = ctrl.id
@@ -73,14 +73,14 @@ parser.add_argument("-r", "--restore", action="store_true", help="Restore curren
 args = parser.parse_args()
 
 def store_ctrls(dev):
-    ctrls = queryCtrls(dev)
-    driver = queryDriver(dev)
+    ctrls = query_ctrls(dev)
+    driver = query_driver(dev)
 
     config = {}
 
     for c in ctrls:
         try:
-            config[c.name] = int(getCtrl(dev, c))
+            config[c.name] = int(get_ctrl(dev, c))
         except:
             continue
 
@@ -90,8 +90,8 @@ def store_ctrls(dev):
         json.dump(config, f, indent=4)
 
 def restore_ctrls(dev):
-    ctrls = queryCtrls(dev)
-    driver = queryDriver(dev)
+    ctrls = query_ctrls(dev)
+    driver = query_driver(dev)
 
     config = {}
 
@@ -110,7 +110,7 @@ def restore_ctrls(dev):
 
         try:
             new_value = int(config[c.name])
-            setCtrl(dev, c, new_value)
+            set_ctrl(dev, c, new_value)
         except:
             print "Unable to restore", c.name
 
@@ -135,7 +135,7 @@ class KeyHandler:
         self.callback = callback
 
 
-class pyVidController:
+class VidController:
     def __init__(self, dev):
         self.win = curses.initscr()
         curses.start_color()
@@ -155,7 +155,7 @@ class pyVidController:
         self.check_term_size()
 
         self.dev = dev
-        self.ctrls = queryCtrls(dev)
+        self.ctrls = query_ctrls(dev)
 
         self.selected = 0
         self.selected_max = 0
@@ -228,7 +228,7 @@ class pyVidController:
                 color = 4
 
             try:
-                value = getCtrl(self.dev, c)
+                value = get_ctrl(self.dev, c)
                 total_value = c.maximum - c.minimum
                 barWidth = (self.w - 2 - (3 + maxl))
 
@@ -299,7 +299,7 @@ class pyVidController:
         if self.in_help:
             return
 
-        value = getCtrl(self.dev, self.selected_ctrl)
+        value = get_ctrl(self.dev, self.selected_ctrl)
 
         total_span = (self.selected_ctrl.maximum - self.selected_ctrl.minimum)
 
@@ -324,7 +324,7 @@ class pyVidController:
         elif value > self.selected_ctrl.maximum:
             value = self.selected_ctrl.maximum
 
-        setCtrl(self.dev, self.selected_ctrl, value)
+        set_ctrl(self.dev, self.selected_ctrl, value)
 
     def end(self):
         curses.nocbreak()
@@ -333,7 +333,7 @@ class pyVidController:
         curses.endwin()
 
 
-vctrl = pyVidController(dev)
+vctrl = VidController(dev)
 
 def vidctrl_exit():
     vctrl.end()
