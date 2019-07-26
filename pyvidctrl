@@ -10,6 +10,7 @@ import sys
 import json
 import argparse
 
+
 def query_ctrls(dev):
     ctrls = []
 
@@ -34,12 +35,13 @@ def query_ctrls(dev):
 
     return ctrls
 
+
 def query_driver(dev):
     try:
         cp = v4l2.v4l2_capability()
         fcntl.ioctl(dev, v4l2.VIDIOC_QUERYCAP, cp)
         return cp.driver
-    except:
+    except Exception:
         return "unknown"
 
 
@@ -65,12 +67,18 @@ def set_ctrl(dev, ctrl, value):
     except Exception:
         pass
 
+
 parser = argparse.ArgumentParser()
 
-parser.add_argument("-s", "--store", action="store_true", help="Store current parameter values")
-parser.add_argument("-r", "--restore", action="store_true", help="Restore current parameter values")
+parser.add_argument("-s", "--store",
+                    action="store_true",
+                    help="Store current parameter values")
+parser.add_argument("-r", "--restore",
+                    action="store_true",
+                    help="Restore current parameter values")
 
 args = parser.parse_args()
+
 
 def store_ctrls(dev):
     ctrls = query_ctrls(dev)
@@ -81,13 +89,14 @@ def store_ctrls(dev):
     for c in ctrls:
         try:
             config[c.name] = int(get_ctrl(dev, c))
-        except:
+        except Exception:
             continue
 
     fname = ".pyvidctrl-" + driver
 
     with open(fname, "w+") as f:
         json.dump(config, f, indent=4)
+
 
 def restore_ctrls(dev):
     ctrls = query_ctrls(dev)
@@ -100,7 +109,7 @@ def restore_ctrls(dev):
     try:
         with open(fname, "r") as f:
             config = json.load(f)
-    except:
+    except Exception:
         print "Unable to read the config file!"
         return
 
@@ -111,8 +120,9 @@ def restore_ctrls(dev):
         try:
             new_value = int(config[c.name])
             set_ctrl(dev, c, new_value)
-        except:
+        except Exception:
             print "Unable to restore", c.name
+
 
 dev = open('/dev/video0', 'rw')
 
@@ -186,9 +196,11 @@ class VidController:
         try:
             for k in self.key_handlers.keys():
                 self.win.addstr(pos, 3, k, curses.color_pair(2))
-                self.win.addstr(pos, 5, self.key_handlers[k].help_msg, curses.color_pair(3))
+                self.win.addstr(pos, 5,
+                                self.key_handlers[k].help_msg,
+                                curses.color_pair(3))
                 pos += 1
-        except:
+        except Exception:
             self.end()
             print "Terminal too small to display help"
             sys.exit(1)
@@ -250,7 +262,8 @@ class VidController:
 
             self.last_visible = self.selected_max
 
-            name = c.name + " " * (maxl - len(c.name) - len(str(value)) - 3) + str(value)
+            nlen = (maxl - len(c.name) - len(str(value)) - 3)
+            name = c.name + " " * nlen + str(value)
 
             self.win.addstr(pos,
                             3,
@@ -332,39 +345,45 @@ class VidController:
         curses.echo()
         curses.endwin()
 
+    def add_key(self, key, msg, action):
+        self.key_handlers[key] = KeyHandler(msg, action)
+
 
 vctrl = VidController(dev)
+
 
 def vidctrl_exit():
     vctrl.end()
     sys.exit(0)
 
+
 def sigint_handler(sig, f):
     vidctrl_exit()
 
+
 signal.signal(signal.SIGINT, sigint_handler)
 
-vctrl.key_handlers['q'] = KeyHandler("Exit the program", lambda: vidctrl_exit())
-vctrl.key_handlers['?'] = KeyHandler("Enter/Exit help",  lambda: vctrl.toggle_help())
-vctrl.key_handlers['j'] = KeyHandler("Next entry",       lambda: vctrl.next())
-vctrl.key_handlers['k'] = KeyHandler("Previous entry",   lambda: vctrl.prev())
-vctrl.key_handlers['u'] = KeyHandler("Decrease by 0.1%", lambda: vctrl.inc(-0.1))
-vctrl.key_handlers['U'] = KeyHandler("Decrease by 0.5%", lambda: vctrl.inc(-0.5))
-vctrl.key_handlers['h'] = KeyHandler("Decrease by 1%",   lambda: vctrl.inc(-1))
-vctrl.key_handlers['H'] = KeyHandler("Decrease by 10%",  lambda: vctrl.inc(-10))
-vctrl.key_handlers['p'] = KeyHandler("Increase by 0.1%", lambda: vctrl.inc(0.1))
-vctrl.key_handlers['P'] = KeyHandler("Increase by 0.5%", lambda: vctrl.inc(0.5))
-vctrl.key_handlers['l'] = KeyHandler("Increase by 1%",   lambda: vctrl.inc(1))
-vctrl.key_handlers['L'] = KeyHandler("Increase by 10%",  lambda: vctrl.inc(10))
-vctrl.key_handlers['s'] = KeyHandler("Save changes",     lambda: store_ctrls(dev))
-vctrl.key_handlers['r'] = KeyHandler("Load stored",      lambda: restore_ctrls(dev))
+vctrl.add_key('q', "Exit the program", lambda: vidctrl_exit())
+vctrl.add_key('?', "Enter/Exit help", lambda: vctrl.toggle_help())
+vctrl.add_key('j', "Next entry", lambda: vctrl.next())
+vctrl.add_key('k', "Previous entry", lambda: vctrl.prev())
+vctrl.add_key('u', "Decrease by 0.1%", lambda: vctrl.inc(-0.1))
+vctrl.add_key('U', "Decrease by 0.5%", lambda: vctrl.inc(-0.5))
+vctrl.add_key('h', "Decrease by 1%", lambda: vctrl.inc(-1))
+vctrl.add_key('H', "Decrease by 10%", lambda: vctrl.inc(-10))
+vctrl.add_key('p', "Increase by 0.1%", lambda: vctrl.inc(0.1))
+vctrl.add_key('P', "Increase by 0.5%", lambda: vctrl.inc(0.5))
+vctrl.add_key('l', "Increase by 1%", lambda: vctrl.inc(1))
+vctrl.add_key('L', "Increase by 10%", lambda: vctrl.inc(10))
+vctrl.add_key('s', "Save changes", lambda: store_ctrls(dev))
+vctrl.add_key('r', "Load stored", lambda: restore_ctrls(dev))
 
 while True:
     vctrl.draw()
     try:
         c = chr(vctrl.getch())
-    except:
+    except Exception:
         continue
 
     if c in vctrl.key_handlers.keys():
-            vctrl.key_handlers[c].callback()
+        vctrl.key_handlers[c].callback()
