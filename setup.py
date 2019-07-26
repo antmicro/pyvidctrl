@@ -25,7 +25,7 @@ setup(
         'Environment :: Console',
         'Intended Audience :: Developers',
         'License :: MIT',
-        'Operating System :: OS Independent',
+        'Operating System :: Linux',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
         'Topic :: Utilities',
