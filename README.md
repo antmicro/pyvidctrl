@@ -23,3 +23,4 @@ Features vi-like keybindings.
 | p   | increase current value by 0.1% |
 | P   | increase current value by 0.5% |
 
+(c) 2018-2019 [Antmicro](https://antmicro.com)
