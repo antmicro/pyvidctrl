@@ -68,76 +68,6 @@ def set_ctrl(dev, ctrl, value):
         pass
 
 
-parser = argparse.ArgumentParser()
-
-parser.add_argument("-s", "--store",
-                    action="store_true",
-                    help="Store current parameter values")
-parser.add_argument("-r", "--restore",
-                    action="store_true",
-                    help="Restore current parameter values")
-
-args = parser.parse_args()
-
-
-def store_ctrls(dev):
-    ctrls = query_ctrls(dev)
-    driver = query_driver(dev)
-
-    config = {}
-
-    for c in ctrls:
-        try:
-            config[c.name] = int(get_ctrl(dev, c))
-        except Exception:
-            continue
-
-    fname = ".pyvidctrl-" + driver
-
-    with open(fname, "w+") as f:
-        json.dump(config, f, indent=4)
-
-
-def restore_ctrls(dev):
-    ctrls = query_ctrls(dev)
-    driver = query_driver(dev)
-
-    config = {}
-
-    fname = ".pyvidctrl-" + driver
-
-    try:
-        with open(fname, "r") as f:
-            config = json.load(f)
-    except Exception:
-        print "Unable to read the config file!"
-        return
-
-    for c in ctrls:
-        if c.name not in config.keys():
-            continue
-
-        try:
-            new_value = int(config[c.name])
-            set_ctrl(dev, c, new_value)
-        except Exception:
-            print "Unable to restore", c.name
-
-
-dev = open('/dev/video0', 'rw')
-
-if args.store and args.restore:
-    print "Cannot store and restore values at the same time!"
-    sys.exit(1)
-elif args.store:
-    print "Storing..."
-    store_ctrls(dev)
-    sys.exit(0)
-elif args.restore:
-    print "Restoring..."
-    restore_ctrls(dev)
-    sys.exit(0)
-
 
 class KeyHandler:
     def __init__(self, help_msg, callback):
@@ -349,41 +279,116 @@ class VidController:
         self.key_handlers[key] = KeyHandler(msg, action)
 
 
-vctrl = VidController(dev)
+
+def main():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("-s", "--store",
+                        action="store_true",
+                        help="Store current parameter values")
+    parser.add_argument("-r", "--restore",
+                        action="store_true",
+                        help="Restore current parameter values")
+
+    args = parser.parse_args()
 
 
-def vidctrl_exit():
-    vctrl.end()
-    sys.exit(0)
+    def store_ctrls(dev):
+        ctrls = query_ctrls(dev)
+        driver = query_driver(dev)
+
+        config = {}
+
+        for c in ctrls:
+            try:
+                config[c.name] = int(get_ctrl(dev, c))
+            except Exception:
+                continue
+
+        fname = ".pyvidctrl-" + driver
+
+        with open(fname, "w+") as f:
+            json.dump(config, f, indent=4)
 
 
-def sigint_handler(sig, f):
-    vidctrl_exit()
+    def restore_ctrls(dev):
+        ctrls = query_ctrls(dev)
+        driver = query_driver(dev)
+
+        config = {}
+
+        fname = ".pyvidctrl-" + driver
+
+        try:
+            with open(fname, "r") as f:
+                config = json.load(f)
+        except Exception:
+            print "Unable to read the config file!"
+            return
+
+        for c in ctrls:
+            if c.name not in config.keys():
+                continue
+
+            try:
+                new_value = int(config[c.name])
+                set_ctrl(dev, c, new_value)
+            except Exception:
+                print "Unable to restore", c.name
 
 
-signal.signal(signal.SIGINT, sigint_handler)
+    dev = open('/dev/video0', 'rw')
 
-vctrl.add_key('q', "Exit the program", lambda: vidctrl_exit())
-vctrl.add_key('?', "Enter/Exit help", lambda: vctrl.toggle_help())
-vctrl.add_key('j', "Next entry", lambda: vctrl.next())
-vctrl.add_key('k', "Previous entry", lambda: vctrl.prev())
-vctrl.add_key('u', "Decrease by 0.1%", lambda: vctrl.inc(-0.1))
-vctrl.add_key('U', "Decrease by 0.5%", lambda: vctrl.inc(-0.5))
-vctrl.add_key('h', "Decrease by 1%", lambda: vctrl.inc(-1))
-vctrl.add_key('H', "Decrease by 10%", lambda: vctrl.inc(-10))
-vctrl.add_key('p', "Increase by 0.1%", lambda: vctrl.inc(0.1))
-vctrl.add_key('P', "Increase by 0.5%", lambda: vctrl.inc(0.5))
-vctrl.add_key('l', "Increase by 1%", lambda: vctrl.inc(1))
-vctrl.add_key('L', "Increase by 10%", lambda: vctrl.inc(10))
-vctrl.add_key('s', "Save changes", lambda: store_ctrls(dev))
-vctrl.add_key('r', "Load stored", lambda: restore_ctrls(dev))
+    if args.store and args.restore:
+        print "Cannot store and restore values at the same time!"
+        sys.exit(1)
+    elif args.store:
+        print "Storing..."
+        store_ctrls(dev)
+        sys.exit(0)
+    elif args.restore:
+        print "Restoring..."
+        restore_ctrls(dev)
+        sys.exit(0)
+    vctrl = VidController(dev)
 
-while True:
-    vctrl.draw()
-    try:
-        c = chr(vctrl.getch())
-    except Exception:
-        continue
 
-    if c in vctrl.key_handlers.keys():
-        vctrl.key_handlers[c].callback()
+    def vidctrl_exit():
+        vctrl.end()
+        sys.exit(0)
+
+
+    def sigint_handler(sig, f):
+        vidctrl_exit()
+
+
+    signal.signal(signal.SIGINT, sigint_handler)
+
+    vctrl.add_key('q', "Exit the program", lambda: vidctrl_exit())
+    vctrl.add_key('?', "Enter/Exit help", lambda: vctrl.toggle_help())
+    vctrl.add_key('j', "Next entry", lambda: vctrl.next())
+    vctrl.add_key('k', "Previous entry", lambda: vctrl.prev())
+    vctrl.add_key('u', "Decrease by 0.1%", lambda: vctrl.inc(-0.1))
+    vctrl.add_key('U', "Decrease by 0.5%", lambda: vctrl.inc(-0.5))
+    vctrl.add_key('h', "Decrease by 1%", lambda: vctrl.inc(-1))
+    vctrl.add_key('H', "Decrease by 10%", lambda: vctrl.inc(-10))
+    vctrl.add_key('p', "Increase by 0.1%", lambda: vctrl.inc(0.1))
+    vctrl.add_key('P', "Increase by 0.5%", lambda: vctrl.inc(0.5))
+    vctrl.add_key('l', "Increase by 1%", lambda: vctrl.inc(1))
+    vctrl.add_key('L', "Increase by 10%", lambda: vctrl.inc(10))
+    vctrl.add_key('s', "Save changes", lambda: store_ctrls(dev))
+    vctrl.add_key('r', "Load stored", lambda: restore_ctrls(dev))
+
+    while True:
+        vctrl.draw()
+        try:
+            c = chr(vctrl.getch())
+        except Exception:
+            continue
+
+        if c in vctrl.key_handlers.keys():
+            vctrl.key_handlers[c].callback()
+
+
+if __name__ == "__main__":
+    main()
