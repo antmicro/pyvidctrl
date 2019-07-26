@@ -25,6 +25,6 @@ Features vi-like keybindings.
 
 ## Installation
 
-    pip2 install git+https://github.com/antmicro/pyvidctrl
+    pip install git+https://github.com/antmicro/pyvidctrl
 
 (c) 2018-2019 [Antmicro](https://antmicro.com)

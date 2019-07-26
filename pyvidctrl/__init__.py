@@ -112,7 +112,7 @@ class VidController:
         # assume minimal terminal width
         if self.w < 50:
             self.end()
-            print "Terminal too narrow"
+            print("Terminal too narrow")
             sys.exit(1)
 
     def getch(self):
@@ -132,7 +132,7 @@ class VidController:
                 pos += 1
         except Exception:
             self.end()
-            print "Terminal too small to display help"
+            print("Terminal too small to display help")
             sys.exit(1)
 
     def draw(self):
@@ -150,7 +150,8 @@ class VidController:
         maxl = 20
 
         for c in self.ctrls:
-            maxl = max(maxl, len(c.name) + len(str(c.maximum)) + 3)
+            pname = c.name.decode('ascii')
+            maxl = max(maxl, len(pname) + len(str(c.maximum)) + 3)
 
         if self.w < maxl + 14:
             maxl = self.w - 14
@@ -158,7 +159,6 @@ class VidController:
         i = 0
         j = 0
         for c in self.ctrls:
-
             if self.displayed_from > i:
                 i += 1
                 continue
@@ -168,6 +168,8 @@ class VidController:
                 color = 3
             else:
                 color = 4
+
+            pname = c.name.decode('ascii')
 
             try:
                 value = get_ctrl(self.dev, c)
@@ -192,8 +194,8 @@ class VidController:
 
             self.last_visible = self.selected_max
 
-            nlen = (maxl - len(c.name) - len(str(value)) - 3)
-            name = c.name + " " * nlen + str(value)
+            nlen = (maxl - len(pname) - len(str(value)) - 3)
+            name = str(pname) + str(" " * nlen) + str(value)
 
             self.win.addstr(pos,
                             3,
@@ -300,8 +302,10 @@ def main():
         config = {}
 
         for c in ctrls:
+            pname = c.name.decode('ascii')
+
             try:
-                config[c.name] = int(get_ctrl(dev, c))
+                config[pname] = int(get_ctrl(dev, c))
             except Exception:
                 continue
 
@@ -323,31 +327,33 @@ def main():
             with open(fname, "r") as f:
                 config = json.load(f)
         except Exception:
-            print "Unable to read the config file!"
+            print("Unable to read the config file!")
             return
 
         for c in ctrls:
-            if c.name not in config.keys():
+            pname = c.name.decode('ascii')
+
+            if pname not in config.keys():
                 continue
 
             try:
-                new_value = int(config[c.name])
+                new_value = int(config[pname])
                 set_ctrl(dev, c, new_value)
             except Exception:
-                print "Unable to restore", c.name
+                print("Unable to restore", pname)
 
 
-    dev = open('/dev/video0', 'rw')
+    dev = open('/dev/video0', 'r')
 
     if args.store and args.restore:
-        print "Cannot store and restore values at the same time!"
+        print("Cannot store and restore values at the same time!")
         sys.exit(1)
     elif args.store:
-        print "Storing..."
+        print("Storing...")
         store_ctrls(dev)
         sys.exit(0)
     elif args.restore:
-        print "Restoring..."
+        print("Restoring...")
         restore_ctrls(dev)
         sys.exit(0)
     vctrl = VidController(dev)

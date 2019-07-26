@@ -19,15 +19,15 @@ setup(
             'pyvidctrl = pyvidctrl:main',
         ]},
     install_requires=[
-                      'v4l2',
-                     ],
+        'v4l2 @ git+https://github.com/antmicro/python3-v4l2',
+    ],
     classifiers=[
         'Environment :: Console',
         'Intended Audience :: Developers',
         'License :: MIT',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.6',
         'Topic :: Utilities',
     ],
 )
