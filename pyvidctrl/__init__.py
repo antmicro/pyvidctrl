@@ -148,6 +148,9 @@ class VidController:
 
         maxl = 20
 
+        if len(self.ctrls) == 0:
+            self.win.addstr(2, 0, "There are no controls available for camera")
+
         for c in self.ctrls:
             pname = c.name.decode('ascii')
             maxl = max(maxl, len(pname) + len(str(c.maximum)) + 3)
