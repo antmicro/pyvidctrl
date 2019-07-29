@@ -15,6 +15,7 @@ SUPPORTED_CTRL_TYPES = (
     v4l2.V4L2_CTRL_TYPE_INTEGER,
     v4l2.V4L2_CTRL_TYPE_INTEGER64,
     v4l2.V4L2_CTRL_TYPE_BOOLEAN,
+    v4l2.V4L2_CTRL_TYPE_INTEGER_MENU
 )
 
 
@@ -154,16 +155,20 @@ class VidController:
 
         self.key_handlers = collections.OrderedDict()
 
+        # TODO: create a dedicated drawer that takes a list of possibile values
+        # and prints the corresponding value on the screen
         self.parameterdrawers = {
             v4l2.V4L2_CTRL_TYPE_INTEGER: self.drawIntegerParameter,
             v4l2.V4L2_CTRL_TYPE_INTEGER64: self.drawIntegerParameter,
             v4l2.V4L2_CTRL_TYPE_BOOLEAN: self.drawBooleanParameter,
+            v4l2.V4L2_CTRL_TYPE_INTEGER_MENU: self.drawIntegerParameter,
         }
 
         self.parametermodificators = {
             v4l2.V4L2_CTRL_TYPE_INTEGER: self.incInteger,
             v4l2.V4L2_CTRL_TYPE_INTEGER64: self.incInteger,
             v4l2.V4L2_CTRL_TYPE_BOOLEAN: self.incBoolean,
+            v4l2.V4L2_CTRL_TYPE_INTEGER_MENU: self.incIntegerMenu
         }
 
     def check_term_size(self):
@@ -376,6 +381,16 @@ class VidController:
             set_ctrl(self.dev, self.selected_ctrl, 1)
         else:
             set_ctrl(self.dev, self.selected_ctrl, 0)
+
+    def incIntegerMenu(self, delta):
+        value = get_ctrl(self.dev, self.selected_ctrl)
+
+        if self.in_help:
+            return
+        if delta > 0 and value <= self.selected_ctrl.maximum:
+            set_ctrl(self.dev, self.selected_ctrl, value + 1)
+        elif value >= self.selected_ctrl.minimum:
+            set_ctrl(self.dev, self.selected_ctrl, value - 1)
 
     def inc(self, delta):
         self.parametermodificators[self.selected_ctrl.type](delta)
