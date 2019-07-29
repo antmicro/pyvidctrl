@@ -158,6 +158,11 @@ class VidController:
             v4l2.V4L2_CTRL_TYPE_INTEGER64: self.drawIntegerParameter,
         }
 
+        self.parametermodificators = {
+            v4l2.V4L2_CTRL_TYPE_INTEGER: self.incInteger,
+            v4l2.V4L2_CTRL_TYPE_INTEGER64: self.incInteger,
+        }
+
     def check_term_size(self):
         # assume minimal terminal width
         if self.w < 50:
@@ -300,7 +305,7 @@ class VidController:
         if self.selected < self.displayed_from:
             self.displayed_from -= 1
 
-    def inc(self, delta):
+    def incInteger(self, delta):
         if self.in_help:
             return
 
@@ -330,6 +335,9 @@ class VidController:
             value = self.selected_ctrl.maximum
 
         set_ctrl(self.dev, self.selected_ctrl, value)
+
+    def inc(self, delta):
+        self.parametermodificators[self.selected_ctrl.type](delta)
 
     def end(self):
         curses.nocbreak()
