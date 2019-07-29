@@ -41,6 +41,7 @@ def query_v4l2_ctrls(dev):
 
     return ctrls
 
+
 def query_tegra_ctrls(dev):
     # This function supports deprecated TEGRA_CAMERA_CID_* API
     ctrls = []
@@ -72,12 +73,14 @@ def query_tegra_ctrls(dev):
 
     return ctrls
 
+
 def query_ctrls(dev):
     ctrls_v4l2 = query_v4l2_ctrls(dev)
     ctrls_tegra = query_tegra_ctrls(dev)
 
     ctrls = ctrls_v4l2 + ctrls_tegra
     return ctrls
+
 
 def query_driver(dev):
     try:
@@ -150,6 +153,11 @@ class VidController:
 
         self.key_handlers = collections.OrderedDict()
 
+        self.parameterdrawers = {
+            v4l2.V4L2_CTRL_TYPE_INTEGER: self.drawIntegerParameter,
+            v4l2.V4L2_CTRL_TYPE_INTEGER64: self.drawIntegerParameter,
+        }
+
     def check_term_size(self):
         # assume minimal terminal width
         if self.w < 50:
@@ -177,6 +185,50 @@ class VidController:
             print("Terminal too small to display help")
             sys.exit(1)
 
+    def drawIntegerParameter(self, c, i, j, maxl, color):
+        pname = c.name.decode('ascii')
+        try:
+            value = get_ctrl(self.dev, c)
+            total_value = c.maximum - c.minimum
+            barWidth = (self.w - 2 - (3 + maxl))
+
+            percent = (value - c.minimum) * 100 / total_value
+
+            barFilledWidth = int((percent / 100.0) * barWidth)
+            barFilled = " " * barFilledWidth
+            barPadding = " " * (barWidth - barFilledWidth)
+        except Exception:
+            return (0, i, j)
+
+        pos = (j + 1) * 2
+        self.selected_max = i
+        i += 1
+        j += 1
+
+        if pos >= self.h:
+            return (1, i, j)
+
+        self.last_visible = self.selected_max
+
+        nlen = (maxl - len(pname) - len(str(value)) - 3)
+        name = pname + " " * nlen + str(value)
+
+        self.win.addstr(pos,
+                        3,
+                        name[:maxl],
+                        curses.color_pair(color))
+
+        self.win.addstr(pos,
+                        3 + maxl,
+                        barFilled,
+                        curses.color_pair(1))
+
+        self.win.addstr(pos,
+                        3 + maxl + barFilledWidth,
+                        barPadding,
+                        curses.color_pair(2))
+        return (0, i, j)
+
     def draw(self):
         self.h, self.w = self.win.getmaxyx()
 
@@ -203,6 +255,7 @@ class VidController:
 
         i = 0
         j = 0
+
         for c in self.ctrls:
             if self.displayed_from > i:
                 i += 1
@@ -214,48 +267,10 @@ class VidController:
             else:
                 color = 4
 
-            pname = c.name.decode('ascii')
-
-            try:
-                value = get_ctrl(self.dev, c)
-                total_value = c.maximum - c.minimum
-                barWidth = (self.w - 2 - (3 + maxl))
-
-                percent = (value - c.minimum) * 100 / total_value
-
-                barFilledWidth = int((percent / 100.0) * barWidth)
-                barFilled = " " * barFilledWidth
-                barPadding = " " * (barWidth - barFilledWidth)
-            except Exception:
-                continue
-
-            pos = (j + 1) * 2
-            self.selected_max = i
-            i += 1
-            j += 1
-
-            if pos >= self.h:
-                continue
-
-            self.last_visible = self.selected_max
-
-            nlen = (maxl - len(pname) - len(str(value)) - 3)
-            name = str(pname) + str(" " * nlen) + str(value)
-
-            self.win.addstr(pos,
-                            3,
-                            name[:maxl],
-                            curses.color_pair(color))
-
-            self.win.addstr(pos,
-                            3 + maxl,
-                            barFilled,
-                            curses.color_pair(1))
-
-            self.win.addstr(pos,
-                            3 + maxl + barFilledWidth,
-                            barPadding,
-                            curses.color_pair(2))
+            ret = 0
+            ret, i, j = self.parameterdrawers[c.type](c, i, j, maxl, color)
+            if ret:
+                return False
 
     def __selected_limit__(self):
         if self.selected < 0:
