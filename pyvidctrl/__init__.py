@@ -10,6 +10,10 @@ import sys
 import json
 import argparse
 
+SUPPORTED_CTRL_TYPES = (
+    v4l2.V4L2_CTRL_TYPE_INTEGER,
+    v4l2.V4L2_CTRL_TYPE_INTEGER64,
+)
 
 def query_ctrls(dev):
     ctrls = []
@@ -25,7 +29,7 @@ def query_ctrls(dev):
 
         if not ctrl.flags & v4l2.V4L2_CTRL_FLAG_DISABLED and \
                 ctrl.type in \
-                (v4l2.V4L2_CTRL_TYPE_INTEGER, v4l2.V4L2_CTRL_TYPE_INTEGER64):
+                SUPPORTED_CTRL_TYPES:
             ctrls.append(ctrl)
 
             ctrl = v4l2.v4l2_queryctrl()
