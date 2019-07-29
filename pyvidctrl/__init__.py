@@ -9,13 +9,15 @@ import signal
 import sys
 import json
 import argparse
+import errno
 
 SUPPORTED_CTRL_TYPES = (
     v4l2.V4L2_CTRL_TYPE_INTEGER,
     v4l2.V4L2_CTRL_TYPE_INTEGER64,
 )
 
-def query_ctrls(dev):
+
+def query_v4l2_ctrls(dev):
     ctrls = []
 
     ctrl = v4l2.v4l2_queryctrl()
@@ -39,6 +41,43 @@ def query_ctrls(dev):
 
     return ctrls
 
+def query_tegra_ctrls(dev):
+    # This function supports deprecated TEGRA_CAMERA_CID_* API
+    ctrls = []
+
+    ctrlid = v4l2.TEGRA_CAMERA_CID_BASE
+
+    ctrl = v4l2.v4l2_queryctrl()
+    ctrl.id = ctrlid
+
+    while ctrl.id < v4l2.TEGRA_CAMERA_CID_LASTP1:
+        try:
+            fcntl.ioctl(dev, v4l2.VIDIOC_QUERYCTRL, ctrl)
+        except IOError as e:
+            if e.errno != errno.EINVAL:
+                return ctrls
+            ctrl = v4l2.v4l2_queryctrl()
+            ctrlid += 1
+            ctrl.id = ctrlid
+            continue
+
+        if not ctrl.flags & v4l2.V4L2_CTRL_FLAG_DISABLED and \
+                ctrl.type in \
+                SUPPORTED_CTRL_TYPES:
+            ctrls.append(ctrl)
+
+        ctrl = v4l2.v4l2_queryctrl()
+        ctrlid += 1
+        ctrl.id = ctrlid
+
+    return ctrls
+
+def query_ctrls(dev):
+    ctrls_v4l2 = query_v4l2_ctrls(dev)
+    ctrls_tegra = query_tegra_ctrls(dev)
+
+    ctrls = ctrls_v4l2 + ctrls_tegra
+    return ctrls
 
 def query_driver(dev):
     try:
