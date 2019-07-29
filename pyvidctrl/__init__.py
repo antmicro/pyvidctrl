@@ -68,7 +68,6 @@ def set_ctrl(dev, ctrl, value):
         pass
 
 
-
 class KeyHandler:
     def __init__(self, help_msg, callback):
         self.help_msg = help_msg
@@ -281,7 +280,6 @@ class VidController:
         self.key_handlers[key] = KeyHandler(msg, action)
 
 
-
 def main():
     parser = argparse.ArgumentParser(
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -320,7 +318,6 @@ def main():
         with open(fname, "w+") as f:
             json.dump(config, f, indent=4)
 
-
     def restore_ctrls(dev):
         ctrls = query_ctrls(dev)
         driver = query_driver(dev)
@@ -348,7 +345,6 @@ def main():
             except Exception:
                 print("Unable to restore", pname)
 
-
     dev = open(args.device, 'r')
 
     if args.store and args.restore:
@@ -364,15 +360,12 @@ def main():
         sys.exit(0)
     vctrl = VidController(dev)
 
-
     def vidctrl_exit():
         vctrl.end()
         sys.exit(0)
 
-
     def sigint_handler(sig, f):
         vidctrl_exit()
-
 
     signal.signal(signal.SIGINT, sigint_handler)
 
