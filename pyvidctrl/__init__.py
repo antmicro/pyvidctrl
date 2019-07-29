@@ -283,7 +283,8 @@ class VidController:
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument("-s", "--store",
                         action="store_true",
@@ -291,9 +292,14 @@ def main():
     parser.add_argument("-r", "--restore",
                         action="store_true",
                         help="Restore current parameter values")
+    parser.add_argument("-d", "--device",
+                        help="Path to the camera device node or its ID",
+                        default="/dev/video0")
 
     args = parser.parse_args()
 
+    if args.device.isdigit():
+        args.device = "/dev/video" + args.device
 
     def store_ctrls(dev):
         ctrls = query_ctrls(dev)
@@ -343,7 +349,7 @@ def main():
                 print("Unable to restore", pname)
 
 
-    dev = open('/dev/video0', 'r')
+    dev = open(args.device, 'r')
 
     if args.store and args.restore:
         print("Cannot store and restore values at the same time!")
