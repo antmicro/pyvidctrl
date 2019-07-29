@@ -277,7 +277,7 @@ class VidController:
 
         self.check_term_size()
 
-        self.win.clear()
+        self.win.erase()
         self.win.addstr(0, 0, "pyVidController - press ? for help")
 
         if self.in_help:
