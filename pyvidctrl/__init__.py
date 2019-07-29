@@ -14,6 +14,7 @@ import errno
 SUPPORTED_CTRL_TYPES = (
     v4l2.V4L2_CTRL_TYPE_INTEGER,
     v4l2.V4L2_CTRL_TYPE_INTEGER64,
+    v4l2.V4L2_CTRL_TYPE_BOOLEAN,
 )
 
 
@@ -156,11 +157,13 @@ class VidController:
         self.parameterdrawers = {
             v4l2.V4L2_CTRL_TYPE_INTEGER: self.drawIntegerParameter,
             v4l2.V4L2_CTRL_TYPE_INTEGER64: self.drawIntegerParameter,
+            v4l2.V4L2_CTRL_TYPE_BOOLEAN: self.drawBooleanParameter,
         }
 
         self.parametermodificators = {
             v4l2.V4L2_CTRL_TYPE_INTEGER: self.incInteger,
             v4l2.V4L2_CTRL_TYPE_INTEGER64: self.incInteger,
+            v4l2.V4L2_CTRL_TYPE_BOOLEAN: self.incBoolean,
         }
 
     def check_term_size(self):
@@ -189,6 +192,36 @@ class VidController:
             self.end()
             print("Terminal too small to display help")
             sys.exit(1)
+
+    def drawBooleanParameter(self, c, i, j, maxl, color):
+        pname = c.name.decode('ascii')
+        printvalue = "T"
+        try:
+            value = get_ctrl(self.dev, c)
+            if value == 0:
+                printvalue = "F"
+        except Exception:
+            return (0, i, j)
+
+        pos = (j + 1) * 2
+        self.selected_max = i
+        i += 1
+        j += 1
+
+        if pos >= self.h:
+            return (1, i, j)
+
+        self.last_visible = self.selected_max
+
+        nlen = (maxl - len(pname) - len(printvalue) - 3)
+        name = pname + " " * nlen + printvalue
+
+        self.win.addstr(pos,
+                        3,
+                        name[:maxl],
+                        curses.color_pair(color))
+
+        return (0, i, j)
 
     def drawIntegerParameter(self, c, i, j, maxl, color):
         pname = c.name.decode('ascii')
@@ -335,6 +368,14 @@ class VidController:
             value = self.selected_ctrl.maximum
 
         set_ctrl(self.dev, self.selected_ctrl, value)
+
+    def incBoolean(self, delta):
+        if self.in_help:
+            return
+        if delta > 0:
+            set_ctrl(self.dev, self.selected_ctrl, 1)
+        else:
+            set_ctrl(self.dev, self.selected_ctrl, 0)
 
     def inc(self, delta):
         self.parametermodificators[self.selected_ctrl.type](delta)
