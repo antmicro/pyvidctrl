@@ -438,7 +438,7 @@ def main():
             except Exception:
                 continue
 
-        fname = ".pyvidctrl-" + driver
+        fname = ".pyvidctrl-" + driver.decode('ascii')
 
         with open(fname, "w+") as f:
             json.dump(config, f, indent=4)
@@ -449,7 +449,7 @@ def main():
 
         config = {}
 
-        fname = ".pyvidctrl-" + driver
+        fname = ".pyvidctrl-" + driver.decode('ascii')
 
         try:
             with open(fname, "r") as f:
