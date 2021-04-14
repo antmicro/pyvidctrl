@@ -1,5 +1,7 @@
 # pyVidController
 
+Copyright (c) 2018-2021 [Antmicro](https://www.antmicro.com)
+
 A small python utility for controlling video4linux cameras.
 It queries user-controls from the v4l2 devices and creates a TUI to display and adjust their values.
 
@@ -26,5 +28,3 @@ Features vi-like keybindings.
 ## Installation
 
     pip install git+https://github.com/antmicro/pyvidctrl
-
-(c) 2018-2019 [Antmicro](https://antmicro.com)
