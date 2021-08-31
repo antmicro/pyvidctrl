@@ -298,7 +298,7 @@ class VidController:
             menu = get_menu(self.dev, c)
             value = get_ctrl(self.dev, c)
             cellWidth = self.w - 2 - (3 + maxl) - 2
-            cell = '<' + menu[value].center(cellWidth) + '>'
+            cell = '<' + menu[value].center(cellWidth)[:cellWidth] + '>'
 
         except Exception as e:
             return (0, i, j)
