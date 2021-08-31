@@ -324,7 +324,7 @@ class VidController:
         self.win.addstr(pos,
                         3 + maxl,
                         cell,
-                        curses.color_pair(3))
+                        curses.color_pair(color))
 
         return (0, i, j)
 
