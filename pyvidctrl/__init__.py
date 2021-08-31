@@ -15,7 +15,8 @@ SUPPORTED_CTRL_TYPES = (
     v4l2.V4L2_CTRL_TYPE_INTEGER,
     v4l2.V4L2_CTRL_TYPE_INTEGER64,
     v4l2.V4L2_CTRL_TYPE_BOOLEAN,
-    v4l2.V4L2_CTRL_TYPE_INTEGER_MENU
+    v4l2.V4L2_CTRL_TYPE_INTEGER_MENU,
+    v4l2.V4L2_CTRL_TYPE_MENU,
 )
 
 
@@ -93,6 +94,23 @@ def query_driver(dev):
         return "unknown"
 
 
+def get_menu(dev, ctrl):
+    querymenu = v4l2.v4l2_querymenu()
+
+    querymenu.id = ctrl.id
+
+    menu = {}
+    for i in range(ctrl.minimum, ctrl.maximum+1):
+        querymenu.index = i
+        try:
+            fcntl.ioctl(dev, v4l2.VIDIOC_QUERYMENU, querymenu)
+            menu[i] = querymenu.name.decode("ascii")
+        except OSError:
+            pass
+
+    return menu
+
+
 def get_ctrl(dev, ctrl):
     gctrl = v4l2.v4l2_control()
 
@@ -162,13 +180,15 @@ class VidController:
             v4l2.V4L2_CTRL_TYPE_INTEGER64: self.drawIntegerParameter,
             v4l2.V4L2_CTRL_TYPE_BOOLEAN: self.drawBooleanParameter,
             v4l2.V4L2_CTRL_TYPE_INTEGER_MENU: self.drawIntegerParameter,
+            v4l2.V4L2_CTRL_TYPE_MENU: self.drawMenuParameter,
         }
 
         self.parametermodificators = {
             v4l2.V4L2_CTRL_TYPE_INTEGER: self.incInteger,
             v4l2.V4L2_CTRL_TYPE_INTEGER64: self.incInteger,
             v4l2.V4L2_CTRL_TYPE_BOOLEAN: self.incBoolean,
-            v4l2.V4L2_CTRL_TYPE_INTEGER_MENU: self.incIntegerMenu
+            v4l2.V4L2_CTRL_TYPE_INTEGER_MENU: self.incIntegerMenu,
+            v4l2.V4L2_CTRL_TYPE_MENU: self.incMenu,
         }
 
     def check_term_size(self):
@@ -270,6 +290,42 @@ class VidController:
                         3 + maxl + barFilledWidth,
                         barPadding,
                         curses.color_pair(2))
+        return (0, i, j)
+
+    def drawMenuParameter(self, c, i, j, maxl, color):
+        pname = c.name.decode('ascii')
+        try:
+            menu = get_menu(self.dev, c)
+            value = get_ctrl(self.dev, c)
+            cellWidth = self.w - 2 - (3 + maxl) - 2
+            cell = '<' + menu[value].center(cellWidth) + '>'
+
+        except Exception as e:
+            return (0, i, j)
+
+        pos = (j + 1) * 2
+        self.selected_max = i
+        i += 1
+        j += 1
+
+        if pos >= self.h:
+            return (1, i, j)
+
+        self.last_visible = self.selected_max
+
+        nlen = maxl - len(str(value)) - 3
+        name = pname.ljust(maxl) + str(value)
+
+        self.win.addstr(pos,
+                        3,
+                        name[:maxl],
+                        curses.color_pair(color))
+
+        self.win.addstr(pos,
+                        3 + maxl,
+                        cell,
+                        curses.color_pair(3))
+
         return (0, i, j)
 
     def draw(self):
@@ -391,6 +447,20 @@ class VidController:
             set_ctrl(self.dev, self.selected_ctrl, value + 1)
         elif value >= self.selected_ctrl.minimum:
             set_ctrl(self.dev, self.selected_ctrl, value - 1)
+
+    def incMenu(self, delta):
+        if self.in_help:
+            return
+
+        delta = delta // abs(delta)
+
+        value = get_ctrl(self.dev, self.selected_ctrl)
+        menu = get_menu(self.dev, self.selected_ctrl)
+
+        menu_keys = list(menu.keys())
+        new_value = menu_keys[(menu_keys.index(value)+delta) % len(menu_keys)]
+
+        set_ctrl(self.dev, self.selected_ctrl, new_value)
 
     def inc(self, delta):
         self.parametermodificators[self.selected_ctrl.type](delta)
