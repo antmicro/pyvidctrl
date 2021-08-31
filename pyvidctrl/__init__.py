@@ -452,7 +452,7 @@ class VidController:
         if self.in_help:
             return
 
-        delta = delta // abs(delta)
+        delta = int(delta / abs(delta))
 
         value = get_ctrl(self.dev, self.selected_ctrl)
         menu = get_menu(self.dev, self.selected_ctrl)
