@@ -200,11 +200,8 @@ class VidController:
 
     def drawBooleanParameter(self, c, i, j, maxl, color):
         pname = c.name.decode('ascii')
-        printvalue = "T"
         try:
             value = get_ctrl(self.dev, c)
-            if value == 0:
-                printvalue = "F"
         except Exception:
             return (0, i, j)
 
@@ -218,13 +215,23 @@ class VidController:
 
         self.last_visible = self.selected_max
 
-        nlen = (maxl - len(pname) - len(printvalue) - 3)
-        name = pname + " " * nlen + printvalue
+        cellWidth = self.w - 2 - (3 + maxl)
+        name = pname.ljust(maxl)
 
         self.win.addstr(pos,
                         3,
                         name[:maxl],
                         curses.color_pair(color))
+
+        self.win.addstr(pos,
+                        3 + maxl,
+                        "False".center(cellWidth // 2),
+                        curses.color_pair(3 if not value else 0))
+
+        self.win.addstr(pos,
+                        3 + maxl + cellWidth // 2,
+                        "True".center(cellWidth // 2),
+                        curses.color_pair(3 if value else 0))
 
         return (0, i, j)
 
