@@ -307,7 +307,7 @@ class VidController:
             cellWidth = self.w - 2 - (3 + maxl) - 2
             cell = '<' + menu[value].center(cellWidth)[:cellWidth] + '>'
 
-        except Exception as e:
+        except Exception:
             return (0, i, j)
 
         pos = (j + 1) * 2
@@ -320,7 +320,6 @@ class VidController:
 
         self.last_visible = self.selected_max
 
-        nlen = maxl - len(str(value)) - 3
         name = pname.ljust(maxl) + str(value)
 
         self.win.addstr(pos,
@@ -484,7 +483,7 @@ class VidController:
 
 def main():
     parser = argparse.ArgumentParser(
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument("-s", "--store",
                         action="store_true",
@@ -572,30 +571,36 @@ def main():
     signal.signal(signal.SIGINT, sigint_handler)
 
     vctrl.add_key('q', "Exit the program", lambda: vidctrl_exit())
-    vctrl.add_key('?', "Enter/Exit help",  lambda: vctrl.toggle_help())
-    vctrl.add_key('j', "Next entry",       lambda: vctrl.next())
-    vctrl.add_key('k', "Previous entry",   lambda: vctrl.prev())
+    vctrl.add_key('?', "Enter/Exit help", lambda: vctrl.toggle_help())
+    vctrl.add_key('j', "Next entry", lambda: vctrl.next())
+    vctrl.add_key('k', "Previous entry", lambda: vctrl.prev())
     vctrl.add_key('u', "Decrease by 0.1%", lambda: vctrl.inc(-0.1))
     vctrl.add_key('U', "Decrease by 0.5%", lambda: vctrl.inc(-0.5))
-    vctrl.add_key('h', "Decrease by 1%",   lambda: vctrl.inc(-1))
-    vctrl.add_key('H', "Decrease by 10%",  lambda: vctrl.inc(-10))
+    vctrl.add_key('h', "Decrease by 1%", lambda: vctrl.inc(-1))
+    vctrl.add_key('H', "Decrease by 10%", lambda: vctrl.inc(-10))
     vctrl.add_key('p', "Increase by 0.1%", lambda: vctrl.inc(0.1))
     vctrl.add_key('P', "Increase by 0.5%", lambda: vctrl.inc(0.5))
-    vctrl.add_key('l', "Increase by 1%",   lambda: vctrl.inc(1))
-    vctrl.add_key('L', "Increase by 10%",  lambda: vctrl.inc(10))
-    vctrl.add_key('s', "Save changes",     lambda: store_ctrls(dev))
-    vctrl.add_key('r', "Load stored",      lambda: restore_ctrls(dev))
+    vctrl.add_key('l', "Increase by 1%", lambda: vctrl.inc(1))
+    vctrl.add_key('L', "Increase by 10%", lambda: vctrl.inc(10))
+    vctrl.add_key('s', "Save changes", lambda: store_ctrls(dev))
+    vctrl.add_key('r', "Load stored", lambda: restore_ctrls(dev))
 
-    vctrl.add_key(chr(258), "Next entry",       lambda: vctrl.next(),   display="↓") # down arrow
-    vctrl.add_key(chr(259), "Previous entry",   lambda: vctrl.prev(),   display="↑") # up arrow
+    vctrl.add_key(chr(258), "Next entry", lambda: vctrl.next(),
+                  display="↓")  # down arrow
+    vctrl.add_key(chr(259), "Previous entry",
+                  lambda: vctrl.prev(),   display="↑")  # up arrow
     vctrl.add_key(',',      "Decrease by 0.1%", lambda: vctrl.inc(-0.1))
     vctrl.add_key('<',      "Decrease by 0.5%", lambda: vctrl.inc(-0.5))
-    vctrl.add_key(chr(260), "Decrease by 1%",   lambda: vctrl.inc(-1),  display="←") # left arrow
-    vctrl.add_key(chr(393), "Decrease by 10%",  lambda: vctrl.inc(-10), display="⇇") # shift+left arrow
+    vctrl.add_key(chr(260), "Decrease by 1%",
+                  lambda: vctrl.inc(-1),  display="←")  # left arrow
+    vctrl.add_key(chr(393), "Decrease by 10%",
+                  lambda: vctrl.inc(-10), display="⇇")  # shift+left arrow
     vctrl.add_key('.',      "Increase by 0.1%", lambda: vctrl.inc(0.1))
     vctrl.add_key('>',      "Increase by 0.5%", lambda: vctrl.inc(0.5))
-    vctrl.add_key(chr(261), "Increase by 1%",   lambda: vctrl.inc(1),   display="→") # right arrow
-    vctrl.add_key(chr(402), "Increase by 10%",  lambda: vctrl.inc(10),  display="⇉") # shift+right arrow
+    vctrl.add_key(chr(261), "Increase by 1%", lambda: vctrl.inc(
+        1),   display="→")  # right arrow
+    vctrl.add_key(chr(402), "Increase by 10%", lambda: vctrl.inc(
+        10),  display="⇉")  # shift+right arrow
 
     while True:
         vctrl.draw()
