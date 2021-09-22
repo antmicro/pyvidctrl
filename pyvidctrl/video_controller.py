@@ -30,6 +30,11 @@ class VideoController(Widget):
             if self.selected_ctrl == i:
                 f |= curses.color_pair(3) | curses.A_BOLD
 
+            if c.ctrl.flags & (V4L2_CTRL_FLAG_DISABLED
+                               | V4L2_CTRL_FLAG_READ_ONLY
+                               | V4L2_CTRL_FLAG_INACTIVE):
+                f |= curses.A_DIM
+
             c.draw(window, w, 1, x, y, f)
 
             if self.selected_ctrl == i and CtrlWidget.show_statusline:
