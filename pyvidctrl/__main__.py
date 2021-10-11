@@ -3,6 +3,7 @@
 from v4l2 import *
 from fcntl import ioctl
 
+from itertools import chain
 import signal
 import sys
 import json
@@ -188,6 +189,56 @@ class App(Widget):
         if should_continue:
             return super().on_keypress(key)
 
+    def store_ctrls(self):
+        driver = query_driver(self.device)
+
+        flattened_cw = chain.from_iterable(
+            vc.ctrls for vc in self.video_controller_tabs.widgets)
+
+        config = [{
+            "id": cw.ctrl.id,
+            "name": cw.name,
+            "type": cw.ctrl.type,
+            "value": cw.value,
+        } for cw in flattened_cw]
+
+        fname = ".pyvidctrl-" + driver.decode("ascii")
+
+        with open(fname, "w") as fd:
+            json.dump(config, fd, indent=4)
+
+    def restore_ctrls(self):
+        driver = query_driver(self.device)
+
+        fname = ".pyvidctrl-" + driver.decode("ascii")
+
+        try:
+            with open(fname, "r") as fd:
+                config = json.load(fd)
+        except FileNotFoundError:
+            print("No", fname, "file in current directory!")
+            return
+        except Exception as e:
+            print("Unable to read the config file!")
+            print(e)
+            return
+
+        flattened_cw = chain.from_iterable(
+            vc.ctrls for vc in self.video_controller_tabs.widgets)
+
+        id_cw_mapping = {cw.ctrl.id: cw for cw in flattened_cw}
+
+        for c in config:
+            cw = id_cw_mapping.get(c["id"], None)
+            if cw is not None:
+                cw.value = c["value"]
+            else:
+                print(
+                    "Couldn't restore value of",
+                    c["name"],
+                    f"control (id: {c['id']})",
+                )
+
     def end(self):
         self.running = False
         curses.nocbreak()
@@ -298,71 +349,26 @@ def main():
     if args.device.isdigit():
         args.device = "/dev/video" + args.device
 
-    def store_ctrls(dev):
-        ctrls = query_ctrls(dev)
-        driver = query_driver(dev)
-
-        config = {}
-
-        for c in ctrls:
-            pname = c.name.decode("ascii")
-
-            try:
-                config[pname] = int(get_ctrl(dev, c))
-            except Exception:
-                continue
-
-        fname = ".pyvidctrl-" + driver.decode("ascii")
-
-        with open(fname, "w+") as f:
-            json.dump(config, f, indent=4)
-
-    def restore_ctrls(dev):
-        ctrls = query_ctrls(dev)
-        driver = query_driver(dev)
-
-        config = {}
-
-        fname = ".pyvidctrl-" + driver.decode("ascii")
-
-        try:
-            with open(fname, "r") as f:
-                config = json.load(f)
-        except Exception:
-            print("Unable to read the config file!")
-            return
-
-        for c in ctrls:
-            pname = c.name.decode("ascii")
-
-            if pname not in config.keys():
-                continue
-
-            try:
-                new_value = int(config[pname])
-                set_ctrl(dev, c, new_value)
-            except Exception:
-                print("Unable to restore", pname)
-
     try:
         device = open(args.device, "r")
     except FileNotFoundError:
         print(f"There is no '{args.device}' device")
         return
 
+    app = App(device)
+
     if args.store and args.restore:
+        app.end()
         print("Cannot store and restore values at the same time!")
         sys.exit(1)
     elif args.store:
+        app.end()
         print("Storing...")
-        store_ctrls(device)
-        sys.exit(0)
+        app.store_ctrls()
     elif args.restore:
+        app.end()
         print("Restoring...")
-        restore_ctrls(device)
-        sys.exit(0)
-
-    app = App(device)
+        app.restore_ctrls()
 
     signal.signal(signal.SIGINT, lambda s, f: app.end())
 
