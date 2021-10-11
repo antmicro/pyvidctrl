@@ -113,9 +113,9 @@ class App(Widget):
 
         curses.start_color()
         curses.noecho()
-        curses.cbreak()
         curses.curs_set(False)
         self.win.keypad(True)
+        curses.halfdelay(10)
 
         curses.init_pair(1, curses.COLOR_BLUE, curses.COLOR_BLACK)
         curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
@@ -362,8 +362,9 @@ def main():
 
     signal.signal(signal.SIGINT, lambda s, f: app.end())
 
-    app.draw()
     while app.running:
+        app.draw()
+
         c = app.getch()
         if 0 < c:
             app.on_keypress(chr(c))
@@ -372,8 +373,6 @@ def main():
             app.end()
             print("Disconnected")
             break
-
-        app.draw()
 
 
 if __name__ == "__main__":
