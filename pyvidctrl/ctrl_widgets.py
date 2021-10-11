@@ -164,6 +164,21 @@ class BitmaskCtrl(CtrlWidget):
         super().__init__(device, ctrl)
 
 
-class IntMenuCtrl(CtrlWidget):
+class IntMenuCtrl(MenuCtrl):
     def __init__(self, device, ctrl):
         super().__init__(device, ctrl)
+
+        querymenu = v4l2_querymenu()
+        querymenu.id = ctrl.id
+
+        options = {}
+        for i in range(ctrl.minimum, ctrl.maximum + 1):
+            querymenu.index = i
+            try:
+                ioctl(device, VIDIOC_QUERYMENU, querymenu)
+                options[i] = int.from_bytes(querymenu.name, "little")
+            except OSError:
+                pass
+
+        self.menu = Menu(options)
+        self.widgets[2] = self.menu

@@ -298,5 +298,9 @@ if __name__ == "__main__":
     KeyBind(MenuCtrl, KEY_LEFT, MenuCtrl.prev, "previous choice", "←")
     KeyBind(MenuCtrl, "l", MenuCtrl.next, "next choice")
     KeyBind(MenuCtrl, KEY_RIGHT, MenuCtrl.next, "next choice", "→")
+    KeyBind(IntMenuCtrl, "h", IntMenuCtrl.prev, "previous choice")
+    KeyBind(IntMenuCtrl, KEY_LEFT, IntMenuCtrl.prev, "previous choice", "←")
+    KeyBind(IntMenuCtrl, "l", IntMenuCtrl.next, "next choice")
+    KeyBind(IntMenuCtrl, KEY_RIGHT, IntMenuCtrl.next, "next choice", "→")
 
     main()
