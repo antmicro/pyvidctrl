@@ -1,4 +1,5 @@
 import curses
+import string
 from fcntl import ioctl
 
 from v4l2 import *
@@ -419,8 +420,170 @@ class StringCtrl(CtrlWidget):
 
 
 class BitmaskCtrl(CtrlWidget):
+    """
+    Bitmask type control widget
+    Uses TextField to display its value.
+    Limits possible characters to valid hex digits.
+    """
+    class BitmaskEditWidget(Widget):
+        def __init__(self, value=0):
+            self.value = value
+            self.in_edit = False
+            self.selected = 0
+
+        def draw(self, window, w, h, x, y, color):
+            render = (self.buffer if self.in_edit else self.value.to_bytes(
+                4, "big").hex())
+
+            if self.in_edit:
+                left_w = (w - len(render) + 1) // 2
+                window.addstr(y, x, " " * left_w, color)
+                x += left_w
+
+                sel = self.selected
+
+                window.addstr(y, x, render[:sel], color)
+                x += sel
+                window.addstr(y, x, render[sel], color | curses.A_REVERSE)
+                x += 1
+                window.addstr(y, x, render[sel + 1:], color)
+                x += len(render) - sel - 1
+
+                right_w = w - len(render) - left_w
+                window.addstr(y, x, " " * right_w, color)
+            else:
+                window.addstr(y, x, render.center(w), color)
+
+        def set(self, char):
+            sel = self.selected
+            self.buffer = self.buffer[:sel] + char + self.buffer[sel + 1:]
+
+        def next(self):
+            if self.in_edit:
+                self.selected = min(self.selected + 1, 7)
+
+        def prev(self):
+            if self.in_edit:
+                self.selected = max(self.selected - 1, 0)
+
+        def inc(self):
+            if self.in_edit:
+                sel = self.selected
+                self.set(hex((int(self.buffer[sel], 16) + 1) % 16)[2:])
+            else:
+                return True
+
+        def dec(self):
+            if self.in_edit:
+                sel = self.selected
+                self.set(hex((int(self.buffer[sel], 16) - 1) % 16)[2:])
+            else:
+                return True
+
+        def edit(self):
+            """
+            Switches from non-edit to edit mode
+            and vice versa. Copies previous text
+            to the `buffer` field, which should
+            be modified. On exit from edit mode
+            it copies `buffer` to `value`.
+            """
+
+            if not self.in_edit:
+                self.buffer = self.value.to_bytes(4, "big").hex()
+                self.in_edit = True
+            else:
+                self.value = int.from_bytes(bytes.fromhex(self.buffer), "big")
+                self.in_edit = False
+
+        def abort(self):
+            """
+            Aborts edit mode clearing buffer
+            and restoring previous value.
+            """
+
+            self.in_edit = False
+            self.buffer = self.value.to_bytes(4, "big").hex()
+
     def __init__(self, device, ctrl):
         super().__init__(device, ctrl)
+        self.edit_widget = BitmaskCtrl.BitmaskEditWidget(self.value)
+        self.widgets[2] = self.edit_widget
+
+    @property
+    def value(self):
+        ectrl = v4l2_ext_control()
+        ectrls = v4l2_ext_controls()
+        ectrl.id = self.ctrl.id
+        ectrls.controls = ctypes.pointer(ectrl)
+        ectrls.count = 1
+
+        try:
+            ioctl(self.device, VIDIOC_G_EXT_CTRLS, ectrls)
+        except OSError:
+            return None
+
+        return ectrl.value64
+
+    @value.setter
+    def value(self, value):
+        ectrl = v4l2_ext_control()
+        ectrl.id = self.ctrl.id
+        ectrl.value64 = value
+
+        ectrls = v4l2_ext_controls()
+        ectrls.controls = ctypes.pointer(ectrl)
+        ectrls.count = 1
+
+        try:
+            ioctl(self.device, VIDIOC_S_EXT_CTRLS, ectrls)
+        except OSError:
+            return
+
+    def on_keypress(self, key):
+        ALLOWED_CHARS = string.hexdigits
+        in_edit = self.edit_widget.in_edit
+
+        if in_edit and key == "\n":
+            self.edit_widget.edit()
+            self.value = self.edit_widget.value
+        elif in_edit and key == KEY_ESCAPE:
+            self.edit_widget.abort()
+        elif in_edit and key in ALLOWED_CHARS:
+            self.edit_widget.set(key)
+            self.next()
+        elif key == "\n":
+            self.edit_widget.edit()
+        else:
+            return super().on_keypress(key)
+
+    def next(self):
+        self.edit_widget.next()
+
+    def prev(self):
+        self.edit_widget.prev()
+
+    def inc(self):
+        return self.edit_widget.inc()
+
+    def dec(self):
+        return self.edit_widget.dec()
+
+    @property
+    def statusline(self):
+        minimum = self.ctrl.minimum
+        maximum = self.ctrl.maximum
+        default = self.ctrl.default
+        value = self.value
+        flags = self.ctrl.flags
+        return Label(", ".join((
+            "type=Bitmask",
+            f"{minimum=}",
+            f"{maximum=}",
+            f"{default=}",
+            f"{value=}",
+            f"{flags=}",
+        )))
 
 
 class IntMenuCtrl(MenuCtrl):
