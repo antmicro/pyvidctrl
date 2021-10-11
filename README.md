@@ -11,24 +11,29 @@ Features vi-like keybindings.
 
 ## Keybindings
 
-|  Key  | Function                       |
-|-------|--------------------------------|
-|   q   | exit                           |
-|   ?   | toggle help                    |
-|   s   | save changes                   |
-|   r   | load stored                    |
-|  j/↓  | next entry                     |
-|  k/↑  | previous entry                 |
-|  u/,  | decrease current value by 0.1% |
-|  U/<  | decrease current value by 0.5% |
-|  h/←  | decrease current value by 1%   |
-|  H/⇇  | decrease current value by 10%  |
-|  p/.  | increase current value by 0.1% |
-|  P/>  | increase current value by 0.5% |
-|  l/→  | increase current value by 1%   |
-|  L/⇉  | increase current value by 10%  |
+|  Key  | Function                                                 |
+|-------|----------------------------------------------------------|
+|   q   | quit app                                                 |
+|   ?   | toggle help                                              |
+|   s   | toggle statusline                                        |
+|  ⇧ ⇆  | select previous tab                                      |
+|   ⇆   | select next tab                                          |
+|   d   | reset to default                                         |
+|   D   | reset all to default                                     |
+| k / ↑ | select previous control                                  |
+| j / ↓ | select next control                                      |
+| u / , | decrease value by step                                   |
+| p / . | increase value by step                                   |
+| U / < | decrease value by 10 steps                               |
+| P / > | increase value by 10 steps                               |
+| h / ← | decrease value by 1% / set value false / previous choice |
+| l / → | increase value by 1% / set value true / next choice      |
+|H / ⇧ ←| decrease value by 10%                                    |
+|L / ⇧ →| increase value by 10%                                    |
+| ^ / ⇤ | set value to minimum                                     |
+| $ / ⇥ | set value to maximum                                     |
+|   ⏎   | negate value / click button                              |
 
-Double arrows mean Shift+arrow
 
 ## Installation
 
