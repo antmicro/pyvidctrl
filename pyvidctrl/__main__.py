@@ -344,7 +344,11 @@ def main():
             except Exception:
                 print("Unable to restore", pname)
 
-    device = open(args.device, "r")
+    try:
+        device = open(args.device, "r")
+    except FileNotFoundError:
+        print(f"There is no '{args.device}' device")
+        return
 
     if args.store and args.restore:
         print("Cannot store and restore values at the same time!")
