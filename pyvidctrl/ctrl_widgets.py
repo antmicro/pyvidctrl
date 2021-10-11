@@ -77,7 +77,15 @@ class CtrlWidget(Row):
             return
 
     def update(self):
-        """Updates child widgets with its value"""
+        """
+        Updates child widgets with its value
+        Also re-query entire control to update flags
+        """
+
+        ctrl = v4l2_query_ext_ctrl()
+        ctrl.id = self.ctrl.id
+        ioctl(self.device, VIDIOC_QUERY_EXT_CTRL, ctrl)
+        self.ctrl = ctrl
 
         v = self.value
         for w in self.widgets:
