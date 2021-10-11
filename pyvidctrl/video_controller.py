@@ -77,6 +77,14 @@ class VideoController(Widget):
         if should_continue:
             return super().on_keypress(key)
 
+    def set_default_selected(self):
+        c = self.ctrls[self.selected_ctrl]
+        c.value = c.ctrl.default
+
+    def set_default_all(self):
+        for c in self.ctrls:
+            c.value = c.ctrl.default
+
     def get_format(self, ctrl):
         """Returns format specific to the CtrlWidget class."""
 

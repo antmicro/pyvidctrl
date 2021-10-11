@@ -286,6 +286,18 @@ if __name__ == "__main__":
     KeyBind(TabbedView, KEY_STAB, TabbedView.prev, "select previous tab",
             "⇧ ⇆")
     KeyBind(TabbedView, KEY_TAB, TabbedView.next, "select next tab", "⇆")
+    KeyBind(
+        VideoController,
+        "d",
+        VideoController.set_default_selected,
+        "reset to default",
+    )
+    KeyBind(
+        VideoController,
+        "D",
+        VideoController.set_default_all,
+        "reset all to default",
+    )
     KeyBind(VideoController, "k", VideoController.prev,
             "select previous control")
     KeyBind(
