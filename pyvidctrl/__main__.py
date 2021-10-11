@@ -201,6 +201,7 @@ class App(Widget):
             print(f"WARNING: Device {driver.decode('ascii')} has no controls")
             with open(fname, "w") as fd:
                 json.dump([], fd, indent=4)
+            return 0
 
         flattened_cw = chain.from_iterable(
             vc.ctrls for vc in self.video_controller_tabs.widgets)
@@ -215,6 +216,8 @@ class App(Widget):
         with open(fname, "w") as fd:
             json.dump(config, fd, indent=4)
 
+        return 0
+
     def restore_ctrls(self):
         driver = query_driver(self.device)
         fname = ".pyvidctrl-" + driver.decode("ascii")
@@ -224,11 +227,12 @@ class App(Widget):
                 config = json.load(fd)
         except FileNotFoundError:
             print("No", fname, "file in current directory!")
-            return
+            return 1
         except Exception as e:
             print("Unable to read the config file!")
             print(e)
-            return
+            return 1
+
         if not hasattr(self, "video_controller_tabs"):
             print(f"WARNING: Device {driver.decode('ascii')} has no controls.")
             return 0
@@ -248,6 +252,8 @@ class App(Widget):
                     c["name"],
                     f"control (id: {c['id']})",
                 )
+
+        return 0
 
     def end(self):
         self.running = False
@@ -545,22 +551,22 @@ def main():
         device = open(args.device, "r")
     except FileNotFoundError:
         print(f"There is no '{args.device}' device")
-        return
+        return 1
 
     app = App(device)
 
     if args.store and args.restore:
         app.end()
         print("Cannot store and restore values at the same time!")
-        sys.exit(1)
+        return 1
     elif args.store:
         app.end()
         print("Storing...")
-        app.store_ctrls()
+        return app.store_ctrls()
     elif args.restore:
         app.end()
         print("Restoring...")
-        app.restore_ctrls()
+        return app.restore_ctrls()
 
     signal.signal(signal.SIGINT, lambda s, f: app.end())
 
@@ -578,4 +584,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
