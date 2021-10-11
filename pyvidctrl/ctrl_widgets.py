@@ -256,6 +256,26 @@ class ButtonCtrl(CtrlWidget):
         self.value = 1
 
     @property
+    def value(self):
+        return 0
+
+    @value.setter
+    def value(self, value):
+        """
+        Same as default, but needs to be here, as
+        property method is reimplemented
+        """
+
+        sctrl = v4l2_control()
+        sctrl.id = self.ctrl.id
+        sctrl.value = value
+
+        try:
+            ioctl(self.device, VIDIOC_S_CTRL, sctrl)
+        except OSError:
+            return
+
+    @property
     def statusline(self):
         flags = self.ctrl.flags
         return Label(f"type=Button, {flags=}")
