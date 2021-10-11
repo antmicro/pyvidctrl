@@ -318,3 +318,50 @@ class Button(Widget):
     def draw(self, window, w, h, x, y, color):
         render = "[" + self.text.center(w - 2) + "]"
         window.addstr(y, x, render, color)
+
+
+class TabbedView(Widget):
+    def __init__(self, widgets, titles=None, selected=None):
+        assert 0 < len(widgets)
+        self.widgets = widgets
+
+        if titles is not None:
+            assert len(titles) == len(widgets)
+            self.titles = titles
+        else:
+            self.titles = [w.value for w in widgets]
+
+        if selected is not None:
+            assert 0 < selected < len(widgets) - 1
+            self.selected = selected
+        else:
+            self.selected = 0
+
+    def next(self):
+        self.selected = (self.selected + 1) % len(self.widgets)
+
+    def prev(self):
+        self.selected = (self.selected - 1) % len(self.widgets)
+
+    def draw(self, window, w, h, x, y):
+        tab_w = w // len(self.widgets)
+
+        for i, title in enumerate(self.titles):
+            tab_color = curses.color_pair(7)
+            if i == self.selected:
+                tab_color |= curses.A_REVERSE
+
+            if i == len(self.titles) - 1:
+                tw = w - tab_w * i
+            else:
+                tw = tab_w - 2
+
+            Label(title, align="center").draw(window, tw, 1, x + i * tab_w, y,
+                                              tab_color)
+
+        self.widgets[self.selected].draw(window, w, h - 2, x, y + 2)
+
+    def on_keypress(self, key):
+        should_continue = self.widgets[self.selected].on_keypress(key)
+        if should_continue:
+            return super().on_keypress(key)

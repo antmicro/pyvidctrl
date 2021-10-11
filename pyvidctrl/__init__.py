@@ -2,13 +2,7 @@
 
 import v4l2
 import fcntl
-import curses
-from curses import (
-    KEY_UP,
-    KEY_DOWN,
-    KEY_LEFT,
-    KEY_RIGHT,
-)
+
 import signal
 import sys
 import json
@@ -19,28 +13,40 @@ from widgets import *
 from ctrl_widgets import *
 from video_controller import VideoController
 
+import curses
+from curses import (
+    KEY_UP,
+    KEY_DOWN,
+    KEY_LEFT,
+    KEY_RIGHT,
+)
+
+KEY_TAB = "\t"
+KEY_STAB = 353
+
 
 def query_v4l2_ctrls(dev):
-    ctrls = []
-
-    ctrl = v4l2.v4l2_query_ext_ctrl()
-    ctrl.id = v4l2.V4L2_CTRL_FLAG_NEXT_CTRL
+    ctrl_id = V4L2_CTRL_FLAG_NEXT_CTRL
+    current_class = "User Controls"
+    controls = {current_class: []}
 
     while True:
+        ctrl = v4l2_query_ext_ctrl()
+        ctrl.id = ctrl_id
         try:
-            fcntl.ioctl(dev, v4l2.VIDIOC_QUERY_EXT_CTRL, ctrl)
+            ioctl(dev, VIDIOC_QUERY_EXT_CTRL, ctrl)
         except OSError:
-            return ctrls
+            break
 
-        if not ctrl.flags & v4l2.V4L2_CTRL_FLAG_DISABLED:
-            ctrls.append(ctrl)
+        if ctrl.type == V4L2_CTRL_TYPE_CTRL_CLASS:
+            current_class = ctrl.name.decode("ascii")
+            controls[current_class] = []
 
-            ctrl = v4l2.v4l2_query_ext_ctrl()
-            ctrl.id = ctrls[-1].id
+        controls[current_class].append(ctrl)
 
-        ctrl.id |= v4l2.V4L2_CTRL_FLAG_NEXT_CTRL
+        ctrl_id = ctrl.id | V4L2_CTRL_FLAG_NEXT_CTRL
 
-    return ctrls
+    return controls
 
 
 def query_tegra_ctrls(dev):
@@ -71,15 +77,14 @@ def query_tegra_ctrls(dev):
         ctrlid += 1
         ctrl.id = ctrlid
 
-    return ctrls
+    return {"Tegra Controls": ctrls}
 
 
 def query_ctrls(dev):
     ctrls_v4l2 = query_v4l2_ctrls(dev)
     ctrls_tegra = query_tegra_ctrls(dev)
 
-    ctrls = ctrls_v4l2 + ctrls_tegra
-    return ctrls
+    return {**ctrls_v4l2, **ctrls_tegra}
 
 
 def query_driver(dev):
@@ -107,13 +112,22 @@ class App(Widget):
         curses.init_pair(7, curses.COLOR_WHITE, 236)
         curses.init_pair(8, curses.COLOR_YELLOW, 236)
 
+        self.in_help = False
+
         self.device = device
         self.ctrls = query_ctrls(device)
 
-        widgets = [CtrlWidget.create(device, ctrl) for ctrl in self.ctrls]
-        self.video_controller = VideoController(device, widgets)
+        tab_titles = []
+        video_controllers = []
+        for name, ctrls in self.ctrls.items():
+            ctrl_widgets = []
+            for ctrl in ctrls:
+                ctrl_widgets.append(CtrlWidget.create(device, ctrl))
+            if 0 < len(ctrl_widgets):
+                video_controllers.append(VideoController(device, ctrl_widgets))
+                tab_titles.append(name)
 
-        self.in_help = False
+        self.video_controller_tabs = TabbedView(video_controllers, tab_titles)
 
     def getch(self):
         return self.win.getch()
@@ -129,7 +143,7 @@ class App(Widget):
                 help_texts.append(kb.help_text)
 
         for i, (key, help_texts) in enumerate(keys.items(), y):
-            Label(key + " - " + " / ".join(help_texts)).draw(
+            Label(f"{key:^3} - {' / '.join(help_texts)}").draw(
                 window, w, h, x, i, color)
 
     def draw(self):
@@ -148,10 +162,10 @@ class App(Widget):
         if len(self.ctrls) == 0:
             self.win.addstr(2, 0, "There are no controls available for camera")
         else:
-            self.video_controller.draw(self.win, w - 6, h - 2, 3, 2)
+            self.video_controller_tabs.draw(self.win, w - 6, h - 2, 3, 2)
 
     def on_keypress(self, key):
-        should_continue = self.video_controller.on_keypress(key)
+        should_continue = self.video_controller_tabs.on_keypress(key)
         if should_continue:
             return super().on_keypress(key)
 
@@ -255,19 +269,22 @@ def main():
 
     signal.signal(signal.SIGINT, lambda s, f: app.end())
 
+    app.draw()
     while True:
-        app.draw()
         try:
             c = chr(app.getch())
         except Exception:
             continue
-
         app.on_keypress(c)
+        app.draw()
 
 
 if __name__ == "__main__":
     KeyBind(App, "q", App.end, "quit app")
     KeyBind(App, "?", App.help, "toggle help")
+    KeyBind(TabbedView, KEY_STAB, TabbedView.prev, "select previous tab",
+            "⇧ ⇆")
+    KeyBind(TabbedView, KEY_TAB, TabbedView.next, "select next tab", "⇆")
     KeyBind(VideoController, "k", VideoController.prev,
             "select previous control")
     KeyBind(

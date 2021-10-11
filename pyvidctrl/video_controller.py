@@ -7,7 +7,7 @@ from ctrl_widgets import *
 class VideoController(Widget):
     """Aggregates multiple CtrlWigets, manages and draws them."""
     def __init__(self, device, ctrls):
-        self.ctrls = ctrls
+        self.ctrls = [c for c in ctrls if not isinstance(c, CtrlClassCtrl)]
         self.device = device
         self.visible_ctrls = slice(0, len(ctrls))
         self.selected_ctrl = -1
@@ -32,10 +32,7 @@ class VideoController(Widget):
 
             c.draw(window, w, 1, x, y, f)
 
-            y += 1
-            if y < h:
-                window.addstr(y, x, "\n")
-                y += 1
+            y += 2
 
     def next(self):
         """Selects next CtrlWidget"""
