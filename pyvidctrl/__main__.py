@@ -20,6 +20,10 @@ from curses import (
     KEY_DOWN,
     KEY_LEFT,
     KEY_RIGHT,
+    KEY_SLEFT,
+    KEY_SRIGHT,
+    KEY_HOME,
+    KEY_END,
 )
 
 KEY_TAB = "\t"
@@ -283,15 +287,197 @@ KeyBind(
     "↓",
 )
 
-KeyBind(IntCtrl, "h", lambda s: s.inc(-1), "decrease value")
-KeyBind(IntCtrl, KEY_LEFT, lambda s: s.inc(-1), "decrease value", "←")
-KeyBind(IntCtrl, "l", lambda s: s.inc(1), "increase value")
-KeyBind(IntCtrl, KEY_RIGHT, lambda s: s.inc(1), "increase value", "→")
+KeyBind(IntCtrl, "u", lambda s: s.change_step(-1), "decrease value by step")
+KeyBind(IntCtrl, ",", lambda s: s.change_step(-1), "decrease value by step")
+KeyBind(IntCtrl, "p", lambda s: s.change_step(+1), "increase value by step")
+KeyBind(IntCtrl, ".", lambda s: s.change_step(+1), "increase value by step")
 
-KeyBind(Int64Ctrl, "h", lambda s: s.inc(-1), "decrease value")
-KeyBind(Int64Ctrl, KEY_LEFT, lambda s: s.inc(-1), "decrease value", "←")
-KeyBind(Int64Ctrl, "l", lambda s: s.inc(1), "increase value")
-KeyBind(Int64Ctrl, KEY_RIGHT, lambda s: s.inc(1), "increase value", "→")
+KeyBind(
+    IntCtrl,
+    "U",
+    lambda s: s.change_step(-10),
+    "decrease value by 10 steps",
+)
+KeyBind(
+    IntCtrl,
+    "<",
+    lambda s: s.change_step(-10),
+    "decrease value by 10 steps",
+)
+KeyBind(
+    IntCtrl,
+    "P",
+    lambda s: s.change_step(+10),
+    "increase value by 10 steps",
+)
+KeyBind(
+    IntCtrl,
+    ">",
+    lambda s: s.change_step(+10),
+    "increase value by 10 steps",
+)
+
+KeyBind(IntCtrl, "h", lambda s: s.change_percent(-1), "decrease value by 1%")
+KeyBind(
+    IntCtrl,
+    KEY_LEFT,
+    lambda s: s.change_percent(-1),
+    "decrease value by 1%",
+    "←",
+)
+KeyBind(IntCtrl, "l", lambda s: s.change_percent(+1), "increase value by 1%")
+KeyBind(
+    IntCtrl,
+    KEY_RIGHT,
+    lambda s: s.change_percent(+1),
+    "increase value by 1%",
+    "→",
+)
+
+KeyBind(IntCtrl, "H", lambda s: s.change_percent(-10), "decrease value by 10%")
+KeyBind(
+    IntCtrl,
+    KEY_SLEFT,
+    lambda s: s.change_percent(-10),
+    "decrease value by 10%",
+    "⇧ ←",
+)
+KeyBind(IntCtrl, "L", lambda s: s.change_percent(+10), "increase value by 10%")
+KeyBind(
+    IntCtrl,
+    KEY_SRIGHT,
+    lambda s: s.change_percent(+10),
+    "increase value by 10%",
+    "⇧ →",
+)
+
+KeyBind(
+    IntCtrl,
+    "^",
+    lambda s: s.set_value(float("-inf")),
+    "set value to minimum",
+)
+KeyBind(
+    IntCtrl,
+    KEY_HOME,
+    lambda s: s.set_value(float("-inf")),
+    "set value to minimum",
+    "⇤",
+)
+KeyBind(
+    IntCtrl,
+    "$",
+    lambda s: s.set_value(float("inf")),
+    "set value to maximum",
+)
+KeyBind(
+    IntCtrl,
+    KEY_END,
+    lambda s: s.set_value(float("inf")),
+    "set value to maximum",
+    "⇥",
+)
+
+KeyBind(Int64Ctrl, "u", lambda s: s.change_step(-1), "decrease value by step")
+KeyBind(Int64Ctrl, ",", lambda s: s.change_step(-1), "decrease value by step")
+KeyBind(Int64Ctrl, "p", lambda s: s.change_step(+1), "increase value by step")
+KeyBind(Int64Ctrl, ".", lambda s: s.change_step(+1), "increase value by step")
+
+KeyBind(
+    Int64Ctrl,
+    "U",
+    lambda s: s.change_step(-10),
+    "decrease value by 10 steps",
+)
+KeyBind(
+    Int64Ctrl,
+    "<",
+    lambda s: s.change_step(-10),
+    "decrease value by 10 steps",
+)
+KeyBind(
+    Int64Ctrl,
+    "P",
+    lambda s: s.change_step(+10),
+    "increase value by 10 steps",
+)
+KeyBind(
+    Int64Ctrl,
+    ">",
+    lambda s: s.change_step(+10),
+    "increase value by 10 steps",
+)
+
+KeyBind(Int64Ctrl, "h", lambda s: s.change_percent(-1), "decrease value by 1%")
+KeyBind(
+    Int64Ctrl,
+    KEY_LEFT,
+    lambda s: s.change_percent(-1),
+    "decrease value by 1%",
+    "←",
+)
+KeyBind(Int64Ctrl, "l", lambda s: s.change_percent(+1), "increase value by 1%")
+KeyBind(
+    Int64Ctrl,
+    KEY_RIGHT,
+    lambda s: s.change_percent(+1),
+    "increase value by 1%",
+    "→",
+)
+
+KeyBind(
+    Int64Ctrl,
+    "H",
+    lambda s: s.change_percent(-10),
+    "decrease value by 10%",
+)
+KeyBind(
+    Int64Ctrl,
+    KEY_SLEFT,
+    lambda s: s.change_percent(-10),
+    "decrease value by 10%",
+    "⇧ ←",
+)
+KeyBind(
+    Int64Ctrl,
+    "L",
+    lambda s: s.change_percent(+10),
+    "increase value by 10%",
+)
+KeyBind(
+    Int64Ctrl,
+    KEY_SRIGHT,
+    lambda s: s.change_percent(+10),
+    "increase value by 10%",
+    "⇧ →",
+)
+
+KeyBind(
+    Int64Ctrl,
+    "^",
+    lambda s: s.set_value(float("-inf")),
+    "set value to minimum",
+)
+KeyBind(
+    Int64Ctrl,
+    KEY_HOME,
+    lambda s: s.set_value(float("-inf")),
+    "set value to minimum",
+    "⇤",
+)
+KeyBind(
+    Int64Ctrl,
+    "$",
+    lambda s: s.set_value(float("inf")),
+    "set value to maximum",
+)
+KeyBind(
+    Int64Ctrl,
+    KEY_END,
+    lambda s: s.set_value(float("inf")),
+    "set value to maximum",
+    "⇥",
+)
 
 KeyBind(BoolCtrl, "h", BoolCtrl.false, "set value false")
 KeyBind(BoolCtrl, KEY_LEFT, BoolCtrl.false, "set value false", "←")

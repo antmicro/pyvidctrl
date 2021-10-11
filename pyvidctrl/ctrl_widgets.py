@@ -111,29 +111,21 @@ class IntCtrl(CtrlWidget):
         self.bar = BarLabeled(ctrl.minimum, ctrl.maximum, self.value)
         self.widgets[2] = self.bar
 
-    def inc(self, delta):
-        total_span = self.ctrl.maximum - self.ctrl.minimum
+    def change_step(self, x):
+        self.set_value(self.value + x * self.ctrl.step)
 
-        one_percent = total_span / 100.0
-        value = self.value
+    def change_percent(self, x):
+        one_percent = (round((self.ctrl.maximum - self.ctrl.minimum) / 100)
+                       or self.ctrl.step)
+        self.set_value(self.value + x * one_percent)
 
-        inc = int(delta * one_percent)
-
-        if inc == 0:
-            if delta > 0:
-                inc = 1
-            else:
-                inc = -1
-            inc *= self.ctrl.step
-
-        value += inc
-
+    def set_value(self, value):
         if value < self.ctrl.minimum:
-            value = self.ctrl.minimum
-        elif value > self.ctrl.maximum:
-            value = self.ctrl.maximum
-
-        self.value = value
+            self.value = self.ctrl.minimum
+        elif self.ctrl.maximum < value:
+            self.value = self.ctrl.maximum
+        else:
+            self.value = int(value)
 
     @property
     def statusline(self):
