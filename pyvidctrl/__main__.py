@@ -25,6 +25,17 @@ KEY_TAB = "\t"
 KEY_STAB = 353
 
 
+def is_valid_device(device):
+    ctrl = v4l2_queryctrl()
+    ctrl.id = V4L2_CTRL_FLAG_NEXT_CTRL
+    try:
+        ioctl(device, VIDIOC_QUERYCTRL, ctrl)
+    except OSError as e:
+        return e.errno != errno.ENODEV
+
+    return True
+
+
 def query_v4l2_ctrls(dev):
     ctrl_id = V4L2_CTRL_FLAG_NEXT_CTRL
     current_class = "User Controls"
@@ -353,12 +364,15 @@ def main():
 
     app.draw()
     while app.running:
-        try:
-            c = chr(app.getch())
-        except Exception:
-            continue
-        app.on_keypress(c)
-        # check if device is still connected
+        c = app.getch()
+        if 0 < c:
+            app.on_keypress(chr(c))
+
+        if not is_valid_device(device):
+            app.end()
+            print("Disconnected")
+            break
+
         app.draw()
 
 
