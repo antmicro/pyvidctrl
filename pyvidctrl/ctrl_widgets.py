@@ -30,24 +30,38 @@ class CtrlWidget(Row):
 
     @property
     def value(self):
-        gctrl = v4l2_control()
-        gctrl.id = self.ctrl.id
+        ectrl = v4l2_ext_control()
+        ectrls = v4l2_ext_controls()
+        ectrl.id = self.ctrl.id
+        ectrls.controls = ctypes.pointer(ectrl)
+        ectrls.count = 1
 
         try:
-            ioctl(self.device, VIDIOC_G_CTRL, gctrl)
+            ioctl(self.device, VIDIOC_G_EXT_CTRLS, ectrls)
         except OSError:
             return None
 
-        return gctrl.value
+        if self.ctrl.type == V4L2_CTRL_TYPE_INTEGER64:
+            return ectrl.value64
+        else:
+            return ectrl.value
 
     @value.setter
     def value(self, value):
-        sctrl = v4l2_control()
+        ectrl = v4l2_ext_control()
+        ectrls = v4l2_ext_controls()
 
-        sctrl.id = self.ctrl.id
-        sctrl.value = value
+        ectrl.id = self.ctrl.id
+        if self.ctrl.type == V4L2_CTRL_TYPE_INTEGER64:
+            ectrl.value64 = value
+        else:
+            ectrl.value = value
+
+        ectrls.controls = ctypes.pointer(ectrl)
+        ectrls.count = 1
+
         try:
-            ioctl(self.device, VIDIOC_S_CTRL, sctrl)
+            ioctl(self.device, VIDIOC_S_EXT_CTRLS, ectrls)
         except OSError:
             return
 

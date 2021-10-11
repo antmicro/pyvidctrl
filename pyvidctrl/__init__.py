@@ -23,19 +23,19 @@ from video_controller import VideoController
 def query_v4l2_ctrls(dev):
     ctrls = []
 
-    ctrl = v4l2.v4l2_queryctrl()
+    ctrl = v4l2.v4l2_query_ext_ctrl()
     ctrl.id = v4l2.V4L2_CTRL_FLAG_NEXT_CTRL
 
     while True:
         try:
-            fcntl.ioctl(dev, v4l2.VIDIOC_QUERYCTRL, ctrl)
+            fcntl.ioctl(dev, v4l2.VIDIOC_QUERY_EXT_CTRL, ctrl)
         except OSError:
             return ctrls
 
         if not ctrl.flags & v4l2.V4L2_CTRL_FLAG_DISABLED:
             ctrls.append(ctrl)
 
-            ctrl = v4l2.v4l2_queryctrl()
+            ctrl = v4l2.v4l2_query_ext_ctrl()
             ctrl.id = ctrls[-1].id
 
         ctrl.id |= v4l2.V4L2_CTRL_FLAG_NEXT_CTRL
