@@ -36,6 +36,8 @@ def is_valid_device(device):
     try:
         ioctl(device, VIDIOC_QUERYCTRL, ctrl)
     except OSError as e:
+        # error code returned when device
+        # gets disconnected
         return e.errno != errno.ENODEV
 
     return True
@@ -52,6 +54,7 @@ def query_v4l2_ctrls(dev):
         try:
             ioctl(dev, VIDIOC_QUERY_EXT_CTRL, ctrl)
         except OSError:
+            # we reached last control
             break
 
         if ctrl.type == V4L2_CTRL_TYPE_CTRL_CLASS:

@@ -72,6 +72,8 @@ class CtrlWidget(Row):
         try:
             ioctl(self.device, VIDIOC_S_CTRL, sctrl)
         except OSError:
+            # can fail as some controls can be read-only
+            # both explicitly (by setting flag) or implicitly
             return
 
     def update(self):
@@ -223,6 +225,8 @@ class MenuCtrl(CtrlWidget):
                 ioctl(device, VIDIOC_QUERYMENU, querymenu)
                 options[i] = querymenu.name.decode("ascii")
             except OSError:
+                # querymenu can fail for given index, but there can
+                # still be more valid indexes
                 pass
 
         self.menu = Menu(options)
@@ -335,6 +339,8 @@ class Int64Ctrl(IntCtrl):
         try:
             ioctl(self.device, VIDIOC_S_EXT_CTRLS, ectrls)
         except OSError:
+            # can fail as some controls can be read-only
+            # both explicitly (by setting flag) or implicitly
             return
 
     @property
@@ -423,6 +429,8 @@ class StringCtrl(CtrlWidget):
         try:
             ioctl(self.device, VIDIOC_S_EXT_CTRLS, ectrls)
         except OSError:
+            # can fail as some controls can be read-only
+            # both explicitly (by setting flag) or implicitly
             return
 
     def on_keypress(self, key):
@@ -579,6 +587,8 @@ class BitmaskCtrl(CtrlWidget):
         try:
             ioctl(self.device, VIDIOC_S_EXT_CTRLS, ectrls)
         except OSError:
+            # can fail as some controls can be read-only
+            # both explicitly (by setting flag) or implicitly
             return
 
     def on_keypress(self, key):
@@ -646,6 +656,8 @@ class IntMenuCtrl(MenuCtrl):
                 ioctl(device, VIDIOC_QUERYMENU, querymenu)
                 options[i] = int.from_bytes(querymenu.name, "little")
             except OSError:
+                # querymenu can fail for given index, but there can
+                # still be more valid indexes
                 pass
 
         self.menu = Menu(options)
