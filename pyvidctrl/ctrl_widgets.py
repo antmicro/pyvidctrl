@@ -1,6 +1,10 @@
+import curses
 from fcntl import ioctl
+
 from v4l2 import *
 from widgets import *
+
+KEY_ESCAPE = "\x1b"
 
 
 class CtrlWidget(Row):
@@ -33,6 +37,9 @@ class CtrlWidget(Row):
         ectrl = v4l2_ext_control()
         ectrls = v4l2_ext_controls()
         ectrl.id = self.ctrl.id
+        if self.ctrl.type == V4L2_CTRL_TYPE_STRING:
+            ectrl.size = self.ctrl.elem_size
+            ectrl.string = bytes(self.ctrl.maximum + 1)
         ectrls.controls = ctypes.pointer(ectrl)
         ectrls.count = 1
 
@@ -43,6 +50,8 @@ class CtrlWidget(Row):
 
         if self.ctrl.type == V4L2_CTRL_TYPE_INTEGER64:
             return ectrl.value64
+        elif self.ctrl.type == V4L2_CTRL_TYPE_STRING:
+            return ectrl.string.decode("ascii")
         else:
             return ectrl.value
 
@@ -54,6 +63,11 @@ class CtrlWidget(Row):
         ectrl.id = self.ctrl.id
         if self.ctrl.type == V4L2_CTRL_TYPE_INTEGER64:
             ectrl.value64 = value
+        elif self.ctrl.type == V4L2_CTRL_TYPE_STRING:
+            if len(value) < self.ctrl.minimum:
+                value = " " * self.ctrl.minimum
+            ectrl.string = value.encode("ascii")
+            ectrl.size = self.ctrl.elem_size
         else:
             ectrl.value = value
 
@@ -171,6 +185,28 @@ class CtrlClassCtrl(CtrlWidget):
 class StringCtrl(CtrlWidget):
     def __init__(self, device, ctrl):
         super().__init__(device, ctrl)
+        self.text_field = TextField(self.value)
+        self.widgets[2] = self.text_field
+
+    def on_keypress(self, key):
+        in_edit = self.text_field.in_edit
+
+        if in_edit and key == "\n":
+            self.text_field.edit()
+            self.value = self.text_field.buffer
+        elif in_edit and ord(key) == curses.KEY_BACKSPACE:
+            self.text_field.buffer = self.text_field.buffer[:-1]
+        elif in_edit and key == KEY_ESCAPE:
+            self.text_field.abort()
+        elif in_edit:
+            if len(self.text_field.buffer) < self.ctrl.maximum:
+                self.text_field.buffer += key
+        elif key == "\n":
+            self.text_field.edit()
+        else:
+            return super().on_keypress(key)
+
+        return True
 
 
 class BitmaskCtrl(CtrlWidget):

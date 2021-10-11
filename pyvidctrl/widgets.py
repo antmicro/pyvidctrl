@@ -79,6 +79,9 @@ class Label(Widget):
         self.text = str(text)
         self.align = align
 
+    def update(self, value):
+        self.text = str(value)
+
     def draw(self, window, w, h, x, y, color):
         render = ""
         if len(self.text) > w:
@@ -91,6 +94,44 @@ class Label(Widget):
             render = self.text.rjust(w)
 
         window.addstr(y, x, render, color)
+
+
+class TextField(Widget):
+    def __init__(self, value="", align="left"):
+        assert align in ["left", "center", "right"]
+        self.value = str(value)
+        self.align = align
+        self.in_edit = False
+
+    def draw(self, window, w, h, x, y, color):
+        self.value = str(self.value)
+        render = self.buffer if self.in_edit else self.value
+        if len(render) > w:
+            render = render[:w - 1] + "…"
+        elif self.align == "left":
+            render = render.ljust(w)
+        elif self.align == "center":
+            render = render.center(w)
+        elif self.align == "right":
+            render = render.rjust(w)
+
+        f = color | curses.A_ITALIC
+
+        if self.in_edit:
+            window.addstr(y, x, render, f | curses.A_REVERSE)
+        else:
+            window.addstr(y, x, render, f)
+
+    def edit(self):
+        if not self.in_edit:
+            self.buffer = self.value
+            self.in_edit = True
+        else:
+            self.value = self.buffer
+            self.in_edit = False
+
+    def abort(self):
+        self.in_edit = False
 
 
 class Checkbox(Widget):
