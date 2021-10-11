@@ -51,53 +51,24 @@ class CtrlWidget(Row):
 
     @property
     def value(self):
-        """Returns value depending on control type"""
-
-        ectrl = v4l2_ext_control()
-        ectrls = v4l2_ext_controls()
-        ectrl.id = self.ctrl.id
-        if self.ctrl.type == V4L2_CTRL_TYPE_STRING:
-            ectrl.size = self.ctrl.elem_size
-            ectrl.string = bytes(self.ctrl.maximum + 1)
-        ectrls.controls = ctypes.pointer(ectrl)
-        ectrls.count = 1
+        gctrl = v4l2_control()
+        gctrl.id = self.ctrl.id
 
         try:
-            ioctl(self.device, VIDIOC_G_EXT_CTRLS, ectrls)
+            ioctl(self.device, VIDIOC_G_CTRL, gctrl)
         except OSError:
             return None
 
-        if self.ctrl.type == V4L2_CTRL_TYPE_INTEGER64:
-            return ectrl.value64
-        elif self.ctrl.type == V4L2_CTRL_TYPE_STRING:
-            return ectrl.string.decode("ascii")
-        else:
-            return ectrl.value
+        return gctrl.value
 
     @value.setter
     def value(self, value):
-        """Sets value depending on control type"""
-
-        ectrl = v4l2_ext_control()
-        ectrls = v4l2_ext_controls()
-
-        ectrl.id = self.ctrl.id
-
-        if self.ctrl.type == V4L2_CTRL_TYPE_INTEGER64:
-            ectrl.value64 = value
-        elif self.ctrl.type == V4L2_CTRL_TYPE_STRING:
-            if len(value) < self.ctrl.minimum:
-                value = " " * self.ctrl.minimum
-            ectrl.string = value.encode("ascii")
-            ectrl.size = self.ctrl.elem_size
-        else:
-            ectrl.value = value
-
-        ectrls.controls = ctypes.pointer(ectrl)
-        ectrls.count = 1
+        sctrl = v4l2_control()
+        sctrl.id = self.ctrl.id
+        sctrl.value = value
 
         try:
-            ioctl(self.device, VIDIOC_S_EXT_CTRLS, ectrls)
+            ioctl(self.device, VIDIOC_S_CTRL, sctrl)
         except OSError:
             return
 
@@ -294,6 +265,37 @@ class Int64Ctrl(IntCtrl):
     Same as Integer one, except for statusline
     """
     @property
+    def value(self):
+        ectrl = v4l2_ext_control()
+        ectrl.id = self.ctrl.id
+
+        ectrls = v4l2_ext_controls()
+        ectrls.controls = ctypes.pointer(ectrl)
+        ectrls.count = 1
+
+        try:
+            ioctl(self.device, VIDIOC_G_EXT_CTRLS, ectrls)
+        except OSError:
+            return None
+
+        return ectrl.value64
+
+    @value.setter
+    def value(self, value):
+        ectrl = v4l2_ext_control()
+        ectrl.id = self.ctrl.id
+        ectrl.value64 = value
+
+        ectrls = v4l2_ext_controls()
+        ectrls.controls = ctypes.pointer(ectrl)
+        ectrls.count = 1
+
+        try:
+            ioctl(self.device, VIDIOC_S_EXT_CTRLS, ectrls)
+        except OSError:
+            return
+
+    @property
     def statusline(self):
         minimum = self.ctrl.minimum
         maximum = self.ctrl.maximum
@@ -342,6 +344,44 @@ class StringCtrl(CtrlWidget):
         super().__init__(device, ctrl)
         self.text_field = TextField(self.value)
         self.widgets[2] = self.text_field
+
+    @property
+    def value(self):
+        ectrl = v4l2_ext_control()
+        ectrl.id = self.ctrl.id
+        ectrl.size = self.ctrl.elem_size
+        ectrl.string = bytes(self.ctrl.maximum + 1)
+
+        ectrls = v4l2_ext_controls()
+        ectrls.controls = ctypes.pointer(ectrl)
+        ectrls.count = 1
+
+        try:
+            ioctl(self.device, VIDIOC_G_EXT_CTRLS, ectrls)
+        except OSError:
+            return None
+
+        return ectrl.string.decode("ascii")
+
+    @value.setter
+    def value(self, value):
+        value = str(value)
+        if len(value) < self.ctrl.minimum:
+            value = " " * self.ctrl.minimum
+
+        ectrl = v4l2_ext_control()
+        ectrl.id = self.ctrl.id
+        ectrl.string = value.encode("ascii")
+        ectrl.size = self.ctrl.elem_size
+
+        ectrls = v4l2_ext_controls()
+        ectrls.controls = ctypes.pointer(ectrl)
+        ectrls.count = 1
+
+        try:
+            ioctl(self.device, VIDIOC_S_EXT_CTRLS, ectrls)
+        except OSError:
+            return
 
     def on_keypress(self, key):
         in_edit = self.text_field.in_edit
