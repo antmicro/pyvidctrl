@@ -282,6 +282,7 @@ def main():
 if __name__ == "__main__":
     KeyBind(App, "q", App.end, "quit app")
     KeyBind(App, "?", App.help, "toggle help")
+    KeyBind(App, "s", CtrlWidget.toggle_statusline, "toggle statusline")
     KeyBind(TabbedView, KEY_STAB, TabbedView.prev, "select previous tab",
             "⇧ ⇆")
     KeyBind(TabbedView, KEY_TAB, TabbedView.next, "select next tab", "⇆")
@@ -306,6 +307,10 @@ if __name__ == "__main__":
     KeyBind(IntCtrl, KEY_LEFT, lambda s: s.inc(-1), "decrease value", "←")
     KeyBind(IntCtrl, "l", lambda s: s.inc(1), "increase value")
     KeyBind(IntCtrl, KEY_RIGHT, lambda s: s.inc(1), "increase value", "→")
+    KeyBind(Int64Ctrl, "h", lambda s: s.inc(-1), "decrease value")
+    KeyBind(Int64Ctrl, KEY_LEFT, lambda s: s.inc(-1), "decrease value", "←")
+    KeyBind(Int64Ctrl, "l", lambda s: s.inc(1), "increase value")
+    KeyBind(Int64Ctrl, KEY_RIGHT, lambda s: s.inc(1), "increase value", "→")
     KeyBind(BoolCtrl, "h", BoolCtrl.false, "set value false")
     KeyBind(BoolCtrl, KEY_LEFT, BoolCtrl.false, "set value false", "←")
     KeyBind(BoolCtrl, "l", BoolCtrl.true, "set value true")

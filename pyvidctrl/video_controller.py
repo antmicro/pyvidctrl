@@ -32,6 +32,9 @@ class VideoController(Widget):
 
             c.draw(window, w, 1, x, y, f)
 
+            if self.selected_ctrl == i and CtrlWidget.show_statusline:
+                c.draw_statusline(window)
+
             y += 2
 
     def next(self):

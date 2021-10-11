@@ -15,6 +15,9 @@ class CtrlWidget(Row):
     'Not implemented!'. Child CtrlWidgets should
     replace that with their specific widget.
     """
+
+    show_statusline = False
+
     def __init__(self, device, ctrl):
         self.device = device
         self.ctrl = ctrl
@@ -22,6 +25,8 @@ class CtrlWidget(Row):
         self.name = ctrl.name.decode("ascii")
         self.label = Label(self.name)
         self.widget = Label("Not implemented!", align="center")
+
+        self._statusline = Label("Statusline")
 
         super().__init__(self.label, Label(""), self.widget, columns=(4, 1, 4))
 
@@ -103,6 +108,19 @@ class CtrlWidget(Row):
         for w in self.widgets:
             w.value = v
 
+    @property
+    def statusline(self):
+        return self._statusline
+
+    def toggle_statusline(self):
+        CtrlWidget.show_statusline = not CtrlWidget.show_statusline
+
+    def draw_statusline(self, window):
+        _, w = window.getmaxyx()
+
+        self.statusline.draw(window, w, 1, 0, 0,
+                             curses.color_pair(3) | curses.A_REVERSE)
+
     def draw(self, window, w, h, x, y, color):
         """Updates itself and then draws"""
 
@@ -144,6 +162,24 @@ class IntCtrl(CtrlWidget):
 
         self.value = value
 
+    @property
+    def statusline(self):
+        minimum = self.ctrl.minimum
+        maximum = self.ctrl.maximum
+        step = self.ctrl.step
+        default = self.ctrl.default
+        value = self.value
+        flags = self.ctrl.flags
+        return Label(", ".join((
+            "type=Integer",
+            f"{minimum=}",
+            f"{maximum=}",
+            f"{step=}",
+            f"{default=}",
+            f"{value=}",
+            f"{flags=}",
+        )))
+
 
 class BoolCtrl(CtrlWidget):
     """
@@ -162,6 +198,18 @@ class BoolCtrl(CtrlWidget):
 
     def neg(self):
         self.value = not self.value
+
+    @property
+    def statusline(self):
+        default = self.ctrl.default
+        value = self.value
+        flags = self.ctrl.flags
+        return Label(", ".join((
+            "type=Boolean",
+            f"{default=}",
+            f"{value=}",
+            f"{flags=}",
+        )))
 
 
 class MenuCtrl(CtrlWidget):
@@ -199,6 +247,22 @@ class MenuCtrl(CtrlWidget):
         self.menu.prev()
         self.value = self.menu.value
 
+    @property
+    def statusline(self):
+        minimum = self.ctrl.minimum
+        maximum = self.ctrl.maximum
+        default = self.ctrl.default
+        value = self.value
+        flags = self.ctrl.flags
+        return Label(", ".join((
+            "type=Menu",
+            f"{minimum=}",
+            f"{maximum=}",
+            f"{default=}",
+            f"{value=}",
+            f"{flags=}",
+        )))
+
 
 class ButtonCtrl(CtrlWidget):
     """
@@ -218,12 +282,34 @@ class ButtonCtrl(CtrlWidget):
 
         self.value = 1
 
+    @property
+    def statusline(self):
+        flags = self.ctrl.flags
+        return Label(f"type=Button, {flags=}")
 
-Int64Ctrl = IntCtrl
-"""
-Integer64 type control widget
-Same as Integer one, because python
-"""
+
+class Int64Ctrl(IntCtrl):
+    """
+    Integer64 type control widget
+    Same as Integer one, except for statusline
+    """
+    @property
+    def statusline(self):
+        minimum = self.ctrl.minimum
+        maximum = self.ctrl.maximum
+        step = self.ctrl.step
+        default = self.ctrl.default
+        value = self.value
+        flags = self.ctrl.flags
+        return Label(", ".join((
+            "type=Integer64",
+            f"{minimum=}",
+            f"{maximum=}",
+            f"{step=}",
+            f"{default=}",
+            f"{value=}",
+            f"{flags=}",
+        )))
 
 
 class CtrlClassCtrl(CtrlWidget):
@@ -275,7 +361,21 @@ class StringCtrl(CtrlWidget):
         else:
             return super().on_keypress(key)
 
-        return True
+    @property
+    def statusline(self):
+        minimum = self.ctrl.minimum
+        maximum = self.ctrl.maximum
+        default = self.ctrl.default
+        value = self.value
+        flags = self.ctrl.flags
+        return Label(", ".join((
+            "type=String",
+            f"{minimum=}",
+            f"{maximum=}",
+            f"{default=}",
+            f"{value=}",
+            f"{flags=}",
+        )))
 
 
 class BitmaskCtrl(CtrlWidget):
@@ -306,3 +406,19 @@ class IntMenuCtrl(MenuCtrl):
 
         self.menu = Menu(options)
         self.widgets[2] = self.menu
+
+    @property
+    def statusline(self):
+        minimum = self.ctrl.minimum
+        maximum = self.ctrl.maximum
+        default = self.ctrl.default
+        value = self.value
+        flags = self.ctrl.flags
+        return Label(", ".join((
+            "type=IntMenu",
+            f"{minimum=}",
+            f"{maximum=}",
+            f"{default=}",
+            f"{value=}",
+            f"{flags=}",
+        )))
