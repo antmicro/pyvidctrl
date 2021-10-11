@@ -16,7 +16,7 @@ setup(
     packages=['pyvidctrl'],
     entry_points={
         'console_scripts': [
-            'pyvidctrl = pyvidctrl:main',
+            'pyvidctrl = pyvidctrl.__main__:main',
         ]},
     install_requires=[
         'v4l2 @ git+https://github.com/antmicro/python3-v4l2',

@@ -3,7 +3,8 @@ import string
 from fcntl import ioctl
 
 from v4l2 import *
-from widgets import *
+
+from .widgets import *
 
 KEY_ESCAPE = "\x1b"
 

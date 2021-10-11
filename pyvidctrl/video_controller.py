@@ -1,7 +1,7 @@
 import curses
 
-from widgets import *
-from ctrl_widgets import *
+from .widgets import *
+from .ctrl_widgets import *
 
 
 class VideoController(Widget):
