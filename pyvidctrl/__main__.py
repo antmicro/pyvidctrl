@@ -97,6 +97,7 @@ def query_driver(dev):
 
 class App(Widget):
     def __init__(self, device):
+        self.running = True
         self.win = curses.initscr()
 
         curses.start_color()
@@ -177,11 +178,11 @@ class App(Widget):
             return super().on_keypress(key)
 
     def end(self):
+        self.running = False
         curses.nocbreak()
         self.win.keypad(False)
         curses.echo()
         curses.endwin()
-        sys.exit(0)
 
 
 KeyBind(App, "q", App.end, "quit app")
@@ -351,7 +352,7 @@ def main():
     signal.signal(signal.SIGINT, lambda s, f: app.end())
 
     app.draw()
-    while True:
+    while app.running:
         try:
             c = chr(app.getch())
         except Exception:
