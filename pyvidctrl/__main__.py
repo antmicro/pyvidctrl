@@ -63,7 +63,7 @@ def query_tegra_ctrls(dev):
             ioctl(dev, VIDIOC_QUERYCTRL, ctrl)
         except IOError as e:
             if e.errno != errno.EINVAL:
-                return ctrls
+                break
             ctrl = v4l2_queryctrl()
             ctrlid += 1
             ctrl.id = ctrlid
@@ -116,6 +116,9 @@ class App(Widget):
         self.device = device
         self.ctrls = query_ctrls(device)
 
+        if len(sum(self.ctrls.values(), start=[])) == 0:
+            return
+
         tab_titles = []
         video_controllers = []
         for name, ctrls in self.ctrls.items():
@@ -158,13 +161,18 @@ class App(Widget):
             self.draw_help(self.win, w - 6, h - 2, 3, 2, curses.color_pair(0))
             return
 
-        if len(self.ctrls) == 0:
-            self.win.addstr(2, 0, "There are no controls available for camera")
-        else:
-            self.video_controller_tabs.draw(self.win, w - 6, h - 2, 3, 2)
+        if len(sum(self.ctrls.values(), start=[])) == 0:
+            Label("There are no controls available for camera").draw(
+                self.win, w, 1, 2, 2, curses.color_pair(2))
+            return
+
+        self.video_controller_tabs.draw(self.win, w - 6, h - 2, 3, 2)
 
     def on_keypress(self, key):
-        should_continue = self.video_controller_tabs.on_keypress(key)
+        should_continue = True
+        if hasattr(self, "video_controller_tabs"):
+            should_continue = self.video_controller_tabs.on_keypress(key)
+
         if should_continue:
             return super().on_keypress(key)
 
