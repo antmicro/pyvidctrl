@@ -44,7 +44,8 @@ def query_v4l2_ctrls(dev):
 
 
 def query_tegra_ctrls(dev):
-    # This function supports deprecated TEGRA_CAMERA_CID_* API
+    """This function supports deprecated TEGRA_CAMERA_CID_* API"""
+
     ctrls = []
 
     ctrlid = TEGRA_CAMERA_CID_BASE

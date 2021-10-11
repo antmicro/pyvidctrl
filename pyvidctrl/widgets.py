@@ -44,9 +44,23 @@ class Widget:
         self._value = value
 
     def draw(self, window, w, h, x, y, color):
+        """
+        Draws text on the provided window.
+        Passed arguments `w`, `h`, `x` and `y` tell where and how big
+        is the box for the Widget. Color is a color parameter of
+        curses addstr.
+        """
+
         pass
 
     def on_keypress(self, key):
+        """
+        Default keypress resolver. First searches for
+        registered handler. If there is one, it runs it.
+        If there is no registered handler or event wasn't
+        exhausted, returns True
+        """
+
         handler = KeyBind.get_handler(self.__class__, key)
 
         if handler is not None:
@@ -56,6 +70,13 @@ class Widget:
 
 
 class Row(Widget):
+    """
+    Row of widgets
+    On draw, it draws contained widgets with given
+    space distributed by values in `columns` field.
+    Last widget in row, gets remaining width to
+    fill given space.
+    """
     def __init__(self, *widgets, columns=None):
         self.widgets = list(widgets)
         self.columns = columns or [1 for _ in widgets]
@@ -74,6 +95,12 @@ class Row(Widget):
 
 
 class Label(Widget):
+    """
+    Label with text inside
+    Text can be aligned to the right, left or centered
+    When there is not enough space, it is trimmed
+    and one character '…' ellipsis is added at the end.
+    """
     def __init__(self, text="", align="left"):
         assert align in ["left", "center", "right"]
         self.text = str(text)
@@ -97,6 +124,12 @@ class Label(Widget):
 
 
 class TextField(Widget):
+    """
+    Editable, single line text field
+    Doesn't resolve events on its own.
+    Requires another widget witch will catch events
+    for it and manipulate its state.
+    """
     def __init__(self, value="", align="left"):
         assert align in ["left", "center", "right"]
         self.value = str(value)
@@ -123,6 +156,14 @@ class TextField(Widget):
             window.addstr(y, x, render, f)
 
     def edit(self):
+        """
+        Switches from non-edit to edit mode
+        and vice versa. Copies previous text
+        to the `buffer` field, which should
+        be modified. On exit from edit mode
+        it copies `buffer` to `value`.
+        """
+
         if not self.in_edit:
             self.buffer = self.value
             self.in_edit = True
@@ -131,10 +172,20 @@ class TextField(Widget):
             self.in_edit = False
 
     def abort(self):
+        """
+        Aborts edit mode clearing buffer
+        and restoring previous value.
+        """
+
         self.in_edit = False
 
 
 class Checkbox(Widget):
+    """
+    Simple checkbox widget
+    Stores boolean and depending on value
+    draws empty or checked box.
+    """
     def __init__(self, value=False):
         self.value = value
 
@@ -144,6 +195,11 @@ class Checkbox(Widget):
 
 
 class TrueFalse(Widget):
+    """
+    More fancy checkbox
+    Draws '[ ] False [ ] True' and depending on value
+    checks box of one of them
+    """
     def __init__(self, value=False):
         self.value = value
 
@@ -160,6 +216,13 @@ class TrueFalse(Widget):
 
 
 class Menu(Widget):
+    """
+    Single choice menu
+    Takes dictionary of options, that is
+    pairs of 'value: displayed text'. Draws
+    `< option text >' and if the selected option
+    is first or last, hides one of the arrows.
+    """
     def __init__(self, options={}, selected=None):
         self.options = options
         self.keys = list(options.keys())
@@ -199,6 +262,11 @@ class Menu(Widget):
 
 
 class Bar(Widget):
+    """
+    Bar with a marker
+    Displays a number selection, by showing
+    a circle on a number line.
+    """
     def __init__(self, min, max, value=None):
         self.value = value if value is not None else min
         self.min = min
@@ -213,6 +281,7 @@ class Bar(Widget):
 
 
 class BarLabeled(Bar):
+    """Bar containing a label"""
     def __init__(self, min, max, value=None, label_position="left"):
         super().__init__(min, max, value)
 
@@ -239,6 +308,10 @@ class BarLabeled(Bar):
 
 
 class Button(Widget):
+    """
+    Simple button
+    Right now it's just a label inside of square brackets
+    """
     def __init__(self, text):
         self.text = text
 
