@@ -81,6 +81,34 @@ class CtrlWidget(Row):
         for w in self.widgets:
             w.value = v
 
+    def get_flags_str(self):
+        flags = self.ctrl.flags
+        ret = []
+        if flags & V4L2_CTRL_FLAG_DISABLED:
+            ret.append("disabled")
+        if flags & V4L2_CTRL_FLAG_GRABBED:
+            ret.append("grabbed")
+        if flags & V4L2_CTRL_FLAG_READ_ONLY:
+            ret.append("read only")
+        if flags & V4L2_CTRL_FLAG_UPDATE:
+            ret.append("update")
+        if flags & V4L2_CTRL_FLAG_INACTIVE:
+            ret.append("inactive")
+        if flags & V4L2_CTRL_FLAG_SLIDER:
+            ret.append("slider")
+        if flags & V4L2_CTRL_FLAG_WRITE_ONLY:
+            ret.append("write only")
+        if flags & V4L2_CTRL_FLAG_VOLATILE:
+            ret.append("volatile")
+        if flags & V4L2_CTRL_FLAG_HAS_PAYLOAD:
+            ret.append("has payload")
+        if flags & V4L2_CTRL_FLAG_EXECUTE_ON_WRITE:
+            ret.append("execute on write")
+        if flags & V4L2_CTRL_FLAG_MODIFY_LAYOUT:
+            ret.append("modify layout")
+
+        return ", ".join(ret)
+
     @property
     def statusline(self):
         return self._statusline
@@ -134,7 +162,7 @@ class IntCtrl(CtrlWidget):
         step = self.ctrl.step
         default = self.ctrl.default
         value = self.value
-        flags = self.ctrl.flags
+        flags = self.get_flags_str()
         return Label(", ".join((
             "type=Integer",
             f"{minimum=}",
@@ -168,7 +196,7 @@ class BoolCtrl(CtrlWidget):
     def statusline(self):
         default = self.ctrl.default
         value = self.value
-        flags = self.ctrl.flags
+        flags = self.get_flags_str()
         return Label(", ".join((
             "type=Boolean",
             f"{default=}",
@@ -218,7 +246,7 @@ class MenuCtrl(CtrlWidget):
         maximum = self.ctrl.maximum
         default = self.ctrl.default
         value = self.value
-        flags = self.ctrl.flags
+        flags = self.get_flags_str()
         return Label(", ".join((
             "type=Menu",
             f"{minimum=}",
@@ -269,7 +297,7 @@ class ButtonCtrl(CtrlWidget):
 
     @property
     def statusline(self):
-        flags = self.ctrl.flags
+        flags = self.get_flags_str()
         return Label(f"type=Button, {flags=}")
 
 
@@ -316,7 +344,7 @@ class Int64Ctrl(IntCtrl):
         step = self.ctrl.step
         default = self.ctrl.default
         value = self.value
-        flags = self.ctrl.flags
+        flags = self.get_flags_str()
         return Label(", ".join((
             "type=Integer64",
             f"{minimum=}",
@@ -421,7 +449,7 @@ class StringCtrl(CtrlWidget):
         maximum = self.ctrl.maximum
         default = self.ctrl.default
         value = self.value
-        flags = self.ctrl.flags
+        flags = self.get_flags_str()
         return Label(", ".join((
             "type=String",
             f"{minimum=}",
@@ -588,7 +616,7 @@ class BitmaskCtrl(CtrlWidget):
         maximum = self.ctrl.maximum
         default = self.ctrl.default
         value = self.value
-        flags = self.ctrl.flags
+        flags = self.get_flags_str()
         return Label(", ".join((
             "type=Bitmask",
             f"{minimum=}",
@@ -629,7 +657,7 @@ class IntMenuCtrl(MenuCtrl):
         maximum = self.ctrl.maximum
         default = self.ctrl.default
         value = self.value
-        flags = self.ctrl.flags
+        flags = self.get_flags_str()
         return Label(", ".join((
             "type=IntMenu",
             f"{minimum=}",
