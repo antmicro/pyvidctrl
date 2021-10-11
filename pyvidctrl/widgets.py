@@ -214,14 +214,16 @@ class TrueFalse(Widget):
 
     def draw(self, window, w, h, x, y, color):
         fbox, tbox = "[ ]", "[x]"
+        fcolor, tcolor = curses.A_NORMAL, color | curses.A_BOLD
 
         if not self.value:
             fbox, tbox = tbox, fbox
+            fcolor, tcolor = tcolor, fcolor
 
         Label(fbox + " False", align="center").draw(window, w // 2, h, x, y,
-                                                    color)
+                                                    fcolor)
         Label(tbox + " True", align="center").draw(window, w - w // 2, h,
-                                                   x + w // 2, y, color)
+                                                   x + w // 2, y, tcolor)
 
 
 class Menu(Widget):
