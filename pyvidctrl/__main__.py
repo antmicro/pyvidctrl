@@ -195,6 +195,12 @@ class App(Widget):
 
     def store_ctrls(self):
         driver = query_driver(self.device)
+        fname = ".pyvidctrl-" + driver.decode("ascii")
+
+        if not hasattr(self, "video_controller_tabs"):
+            print(f"WARNING: Device {driver.decode('ascii')} has no controls")
+            with open(fname, "w") as fd:
+                json.dump([], fd, indent=4)
 
         flattened_cw = chain.from_iterable(
             vc.ctrls for vc in self.video_controller_tabs.widgets)
@@ -206,14 +212,11 @@ class App(Widget):
             "value": cw.value,
         } for cw in flattened_cw]
 
-        fname = ".pyvidctrl-" + driver.decode("ascii")
-
         with open(fname, "w") as fd:
             json.dump(config, fd, indent=4)
 
     def restore_ctrls(self):
         driver = query_driver(self.device)
-
         fname = ".pyvidctrl-" + driver.decode("ascii")
 
         try:
@@ -226,6 +229,9 @@ class App(Widget):
             print("Unable to read the config file!")
             print(e)
             return
+        if not hasattr(self, "video_controller_tabs"):
+            print(f"WARNING: Device {driver.decode('ascii')} has no controls.")
+            return 0
 
         flattened_cw = chain.from_iterable(
             vc.ctrls for vc in self.video_controller_tabs.widgets)
