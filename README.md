@@ -1,4 +1,4 @@
-# pyVidController
+# pyvidctrl
 
 Copyright (c) 2018-2021 [Antmicro](https://www.antmicro.com)
 
