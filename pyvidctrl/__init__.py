@@ -2,39 +2,37 @@
 
 import v4l2
 import fcntl
-import collections
 import curses
-import curses.textpad
+from curses import (
+    KEY_UP,
+    KEY_DOWN,
+    KEY_LEFT,
+    KEY_RIGHT,
+)
 import signal
 import sys
 import json
 import argparse
 import errno
 
-SUPPORTED_CTRL_TYPES = (
-    v4l2.V4L2_CTRL_TYPE_INTEGER,
-    v4l2.V4L2_CTRL_TYPE_INTEGER64,
-    v4l2.V4L2_CTRL_TYPE_BOOLEAN,
-    v4l2.V4L2_CTRL_TYPE_INTEGER_MENU,
-    v4l2.V4L2_CTRL_TYPE_MENU,
-)
+from widgets import *
+from ctrl_widgets import *
+from video_controller import VideoController
 
 
 def query_v4l2_ctrls(dev):
     ctrls = []
 
     ctrl = v4l2.v4l2_queryctrl()
-    ctrl.id = v4l2.V4L2_CID_BASE
+    ctrl.id = v4l2.V4L2_CTRL_FLAG_NEXT_CTRL
 
     while True:
         try:
             fcntl.ioctl(dev, v4l2.VIDIOC_QUERYCTRL, ctrl)
-        except Exception:
+        except OSError:
             return ctrls
 
-        if not ctrl.flags & v4l2.V4L2_CTRL_FLAG_DISABLED and \
-                ctrl.type in \
-                SUPPORTED_CTRL_TYPES:
+        if not ctrl.flags & v4l2.V4L2_CTRL_FLAG_DISABLED:
             ctrls.append(ctrl)
 
             ctrl = v4l2.v4l2_queryctrl()
@@ -49,28 +47,26 @@ def query_tegra_ctrls(dev):
     # This function supports deprecated TEGRA_CAMERA_CID_* API
     ctrls = []
 
-    ctrlid = v4l2.TEGRA_CAMERA_CID_BASE
+    ctrlid = TEGRA_CAMERA_CID_BASE
 
-    ctrl = v4l2.v4l2_queryctrl()
+    ctrl = v4l2_queryctrl()
     ctrl.id = ctrlid
 
-    while ctrl.id < v4l2.TEGRA_CAMERA_CID_LASTP1:
+    while ctrl.id < TEGRA_CAMERA_CID_LASTP1:
         try:
-            fcntl.ioctl(dev, v4l2.VIDIOC_QUERYCTRL, ctrl)
+            ioctl(dev, VIDIOC_QUERYCTRL, ctrl)
         except IOError as e:
             if e.errno != errno.EINVAL:
                 return ctrls
-            ctrl = v4l2.v4l2_queryctrl()
+            ctrl = v4l2_queryctrl()
             ctrlid += 1
             ctrl.id = ctrlid
             continue
 
-        if not ctrl.flags & v4l2.V4L2_CTRL_FLAG_DISABLED and \
-                ctrl.type in \
-                SUPPORTED_CTRL_TYPES:
+        if not ctrl.flags & V4L2_CTRL_FLAG_DISABLED:
             ctrls.append(ctrl)
 
-        ctrl = v4l2.v4l2_queryctrl()
+        ctrl = v4l2_queryctrl()
         ctrlid += 1
         ctrl.id = ctrlid
 
@@ -94,406 +90,100 @@ def query_driver(dev):
         return "unknown"
 
 
-def get_menu(dev, ctrl):
-    querymenu = v4l2.v4l2_querymenu()
-
-    querymenu.id = ctrl.id
-
-    menu = {}
-    for i in range(ctrl.minimum, ctrl.maximum+1):
-        querymenu.index = i
-        try:
-            fcntl.ioctl(dev, v4l2.VIDIOC_QUERYMENU, querymenu)
-            menu[i] = querymenu.name.decode("ascii")
-        except OSError:
-            pass
-
-    return menu
-
-
-def get_ctrl(dev, ctrl):
-    gctrl = v4l2.v4l2_control()
-
-    gctrl.id = ctrl.id
-
-    try:
-        fcntl.ioctl(dev, v4l2.VIDIOC_G_CTRL, gctrl)
-        return gctrl.value
-    except Exception:
-        return None
-
-
-def set_ctrl(dev, ctrl, value):
-    sctrl = v4l2.v4l2_control()
-
-    sctrl.id = ctrl.id
-    sctrl.value = value
-    try:
-        fcntl.ioctl(dev, v4l2.VIDIOC_S_CTRL, sctrl)
-    except Exception:
-        pass
-
-
-class KeyHandler:
-    def __init__(self, help_display, help_msg, callback):
-        self.help_display = help_display
-        self.help_msg = help_msg
-        self.callback = callback
-
-
-class VidController:
-    def __init__(self, dev):
+class App(Widget):
+    def __init__(self, device):
         self.win = curses.initscr()
+
         curses.start_color()
-
-        curses.init_pair(1, curses.COLOR_BLUE, curses.COLOR_BLUE)
-        curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_CYAN)
-
-        curses.init_pair(3, curses.COLOR_BLUE, curses.COLOR_BLACK)
-        curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_BLACK)
-
         curses.noecho()
         curses.cbreak()
         curses.curs_set(False)
         self.win.keypad(True)
-        self.h, self.w = self.win.getmaxyx()
 
-        self.check_term_size()
+        curses.init_pair(1, curses.COLOR_BLUE, curses.COLOR_BLACK)
+        curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
+        curses.init_pair(3, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+        curses.init_pair(7, curses.COLOR_WHITE, 236)
+        curses.init_pair(8, curses.COLOR_YELLOW, 236)
 
-        self.dev = dev
-        self.ctrls = query_ctrls(dev)
+        self.device = device
+        self.ctrls = query_ctrls(device)
 
-        self.selected = 0
-        self.selected_max = 0
-        self.selected_ctrl = None
-
-        self.displayed_from = 0
-        self.last_visible = 0
+        widgets = [CtrlWidget.create(device, ctrl) for ctrl in self.ctrls]
+        self.video_controller = VideoController(device, widgets)
 
         self.in_help = False
-
-        self.key_handlers = collections.OrderedDict()
-
-        # TODO: create a dedicated drawer that takes a list of possibile values
-        # and prints the corresponding value on the screen
-        self.parameterdrawers = {
-            v4l2.V4L2_CTRL_TYPE_INTEGER: self.drawIntegerParameter,
-            v4l2.V4L2_CTRL_TYPE_INTEGER64: self.drawIntegerParameter,
-            v4l2.V4L2_CTRL_TYPE_BOOLEAN: self.drawBooleanParameter,
-            v4l2.V4L2_CTRL_TYPE_INTEGER_MENU: self.drawIntegerParameter,
-            v4l2.V4L2_CTRL_TYPE_MENU: self.drawMenuParameter,
-        }
-
-        self.parametermodificators = {
-            v4l2.V4L2_CTRL_TYPE_INTEGER: self.incInteger,
-            v4l2.V4L2_CTRL_TYPE_INTEGER64: self.incInteger,
-            v4l2.V4L2_CTRL_TYPE_BOOLEAN: self.incBoolean,
-            v4l2.V4L2_CTRL_TYPE_INTEGER_MENU: self.incIntegerMenu,
-            v4l2.V4L2_CTRL_TYPE_MENU: self.incMenu,
-        }
-
-    def check_term_size(self):
-        # assume minimal terminal width
-        if self.w < 50:
-            self.end()
-            print("Terminal too narrow")
-            sys.exit(1)
 
     def getch(self):
         return self.win.getch()
 
-    def toggle_help(self):
+    def help(self):
         self.in_help = not self.in_help
 
-    def draw_help(self):
-        pos = 2
+    def draw_help(self, window, w, h, x, y, color):
+        keys = {}
+        for kb in KeyBind.KEYBINDS:
+            help_texts = keys.setdefault(kb.display, [])
+            if kb.help_text not in help_texts:
+                help_texts.append(kb.help_text)
 
-        try:
-            for k, v in self.key_handlers.items():
-                self.win.addstr(pos, 3, v.help_display, curses.color_pair(2))
-                self.win.addstr(pos, 5, v.help_msg, curses.color_pair(3))
-                pos += 1
-        except Exception:
-            self.end()
-            print("Terminal too small to display help")
-            sys.exit(1)
-
-    def drawBooleanParameter(self, c, i, j, maxl, color):
-        pname = c.name.decode('ascii')
-        try:
-            value = get_ctrl(self.dev, c)
-        except Exception:
-            return (0, i, j)
-
-        pos = (j + 1) * 2
-        self.selected_max = i
-        i += 1
-        j += 1
-
-        if pos >= self.h:
-            return (1, i, j)
-
-        self.last_visible = self.selected_max
-
-        cellWidth = self.w - 2 - (3 + maxl)
-        name = pname.ljust(maxl)
-
-        self.win.addstr(pos,
-                        3,
-                        name[:maxl],
-                        curses.color_pair(color))
-
-        self.win.addstr(pos,
-                        3 + maxl,
-                        "False".center(cellWidth // 2),
-                        curses.color_pair(3 if not value else 0))
-
-        self.win.addstr(pos,
-                        3 + maxl + cellWidth // 2,
-                        "True".center(cellWidth // 2),
-                        curses.color_pair(3 if value else 0))
-
-        return (0, i, j)
-
-    def drawIntegerParameter(self, c, i, j, maxl, color):
-        pname = c.name.decode('ascii')
-        try:
-            value = get_ctrl(self.dev, c)
-            total_value = c.maximum - c.minimum
-            barWidth = (self.w - 2 - (3 + maxl))
-
-            percent = (value - c.minimum) * 100 / total_value
-
-            barFilledWidth = int((percent / 100.0) * barWidth)
-            barFilled = " " * barFilledWidth
-            barPadding = " " * (barWidth - barFilledWidth)
-        except Exception:
-            return (0, i, j)
-
-        pos = (j + 1) * 2
-        self.selected_max = i
-        i += 1
-        j += 1
-
-        if pos >= self.h:
-            return (1, i, j)
-
-        self.last_visible = self.selected_max
-
-        nlen = (maxl - len(pname) - len(str(value)) - 3)
-        name = pname + " " * nlen + str(value)
-
-        self.win.addstr(pos,
-                        3,
-                        name[:maxl],
-                        curses.color_pair(color))
-
-        self.win.addstr(pos,
-                        3 + maxl,
-                        barFilled,
-                        curses.color_pair(1))
-
-        self.win.addstr(pos,
-                        3 + maxl + barFilledWidth,
-                        barPadding,
-                        curses.color_pair(2))
-        return (0, i, j)
-
-    def drawMenuParameter(self, c, i, j, maxl, color):
-        pname = c.name.decode('ascii')
-        try:
-            menu = get_menu(self.dev, c)
-            value = get_ctrl(self.dev, c)
-            cellWidth = self.w - 2 - (3 + maxl) - 2
-            cell = '<' + menu[value].center(cellWidth)[:cellWidth] + '>'
-
-        except Exception:
-            return (0, i, j)
-
-        pos = (j + 1) * 2
-        self.selected_max = i
-        i += 1
-        j += 1
-
-        if pos >= self.h:
-            return (1, i, j)
-
-        self.last_visible = self.selected_max
-
-        name = pname.ljust(maxl) + str(value)
-
-        self.win.addstr(pos,
-                        3,
-                        name[:maxl],
-                        curses.color_pair(color))
-
-        self.win.addstr(pos,
-                        3 + maxl,
-                        cell,
-                        curses.color_pair(color))
-
-        return (0, i, j)
+        for i, (key, help_texts) in enumerate(keys.items(), y):
+            Label(key + " - " + " / ".join(help_texts)).draw(
+                window, w, h, x, i, color)
 
     def draw(self):
-        self.h, self.w = self.win.getmaxyx()
-
-        self.check_term_size()
+        h, w = self.win.getmaxyx()
 
         self.win.erase()
-        self.win.addstr(0, 0, "pyVidController - press ? for help")
+
+        title = Label("pyVidController - press ? for help")
+        title.draw(self.win, w, 1, 0, 0,
+                   curses.color_pair(2) | curses.A_REVERSE)
 
         if self.in_help:
-            self.draw_help()
+            self.draw_help(self.win, w - 6, h - 2, 3, 2, curses.color_pair(0))
             return
-
-        maxl = 20
 
         if len(self.ctrls) == 0:
             self.win.addstr(2, 0, "There are no controls available for camera")
-
-        for c in self.ctrls:
-            pname = c.name.decode('ascii')
-            maxl = max(maxl, len(pname) + len(str(c.maximum)) + 3)
-
-        if self.w < maxl + 14:
-            maxl = self.w - 14
-
-        i = 0
-        j = 0
-
-        for c in self.ctrls:
-            if self.displayed_from > i:
-                i += 1
-                continue
-
-            if self.selected == i:
-                self.selected_ctrl = c
-                color = 3
-            else:
-                color = 4
-
-            ret = 0
-            ret, i, j = self.parameterdrawers[c.type](c, i, j, maxl, color)
-            if ret:
-                return False
-
-    def __selected_limit__(self):
-        if self.selected < 0:
-            self.selected = self.selected_max
-            self.displayed_from = self.selected_max - self.last_visible
-        elif self.selected > self.selected_max:
-            self.selected = 0
-            self.displayed_from = 0
-
-    def next(self):
-        if self.in_help:
-            return
-
-        self.selected += 1
-        self.__selected_limit__()
-
-        if self.last_visible < self.selected:
-            self.displayed_from += 1
-
-    def prev(self):
-        if self.in_help:
-            return
-
-        self.selected -= 1
-        self.__selected_limit__()
-
-        if self.selected < self.displayed_from:
-            self.displayed_from -= 1
-
-    def incInteger(self, delta):
-        if self.in_help:
-            return
-
-        value = get_ctrl(self.dev, self.selected_ctrl)
-
-        total_span = (self.selected_ctrl.maximum - self.selected_ctrl.minimum)
-
-        one_percent = total_span / 100.0
-
-        inc = int(delta * one_percent)
-
-        if inc == 0:
-            if delta > 0:
-                inc = 1
-            else:
-                inc = -1
-            inc *= self.selected_ctrl.step
-
-        value += inc
-
-        while (value - self.selected_ctrl.minimum) % self.selected_ctrl.step:
-            value += 1
-
-        if value < self.selected_ctrl.minimum:
-            value = self.selected_ctrl.minimum
-        elif value > self.selected_ctrl.maximum:
-            value = self.selected_ctrl.maximum
-
-        set_ctrl(self.dev, self.selected_ctrl, value)
-
-    def incBoolean(self, delta):
-        if self.in_help:
-            return
-        if delta > 0:
-            set_ctrl(self.dev, self.selected_ctrl, 1)
         else:
-            set_ctrl(self.dev, self.selected_ctrl, 0)
+            self.video_controller.draw(self.win, w - 6, h - 2, 3, 2)
 
-    def incIntegerMenu(self, delta):
-        value = get_ctrl(self.dev, self.selected_ctrl)
-
-        if self.in_help:
-            return
-        if delta > 0 and value <= self.selected_ctrl.maximum:
-            set_ctrl(self.dev, self.selected_ctrl, value + 1)
-        elif value >= self.selected_ctrl.minimum:
-            set_ctrl(self.dev, self.selected_ctrl, value - 1)
-
-    def incMenu(self, delta):
-        if self.in_help:
-            return
-
-        delta = int(delta / abs(delta))
-
-        value = get_ctrl(self.dev, self.selected_ctrl)
-        menu = get_menu(self.dev, self.selected_ctrl)
-
-        menu_keys = list(menu.keys())
-        new_value = menu_keys[(menu_keys.index(value)+delta) % len(menu_keys)]
-
-        set_ctrl(self.dev, self.selected_ctrl, new_value)
-
-    def inc(self, delta):
-        self.parametermodificators[self.selected_ctrl.type](delta)
+    def on_keypress(self, key):
+        should_continue = self.video_controller.on_keypress(key)
+        if should_continue:
+            return super().on_keypress(key)
 
     def end(self):
         curses.nocbreak()
         self.win.keypad(False)
         curses.echo()
         curses.endwin()
-
-    def add_key(self, key, msg, action, display=None):
-        self.key_handlers[key] = KeyHandler(display or key, msg, action)
+        sys.exit(0)
 
 
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument("-s", "--store",
-                        action="store_true",
-                        help="Store current parameter values")
-    parser.add_argument("-r", "--restore",
-                        action="store_true",
-                        help="Restore current parameter values")
-    parser.add_argument("-d", "--device",
-                        help="Path to the camera device node or its ID",
-                        default="/dev/video0")
+    parser.add_argument(
+        "-s",
+        "--store",
+        action="store_true",
+        help="Store current parameter values",
+    )
+    parser.add_argument(
+        "-r",
+        "--restore",
+        action="store_true",
+        help="Restore current parameter values",
+    )
+    parser.add_argument(
+        "-d",
+        "--device",
+        help="Path to the camera device node or its ID",
+        default="/dev/video0",
+    )
 
     args = parser.parse_args()
 
@@ -507,14 +197,14 @@ def main():
         config = {}
 
         for c in ctrls:
-            pname = c.name.decode('ascii')
+            pname = c.name.decode("ascii")
 
             try:
                 config[pname] = int(get_ctrl(dev, c))
             except Exception:
                 continue
 
-        fname = ".pyvidctrl-" + driver.decode('ascii')
+        fname = ".pyvidctrl-" + driver.decode("ascii")
 
         with open(fname, "w+") as f:
             json.dump(config, f, indent=4)
@@ -525,7 +215,7 @@ def main():
 
         config = {}
 
-        fname = ".pyvidctrl-" + driver.decode('ascii')
+        fname = ".pyvidctrl-" + driver.decode("ascii")
 
         try:
             with open(fname, "r") as f:
@@ -535,7 +225,7 @@ def main():
             return
 
         for c in ctrls:
-            pname = c.name.decode('ascii')
+            pname = c.name.decode("ascii")
 
             if pname not in config.keys():
                 continue
@@ -546,72 +236,67 @@ def main():
             except Exception:
                 print("Unable to restore", pname)
 
-    dev = open(args.device, 'r')
+    device = open(args.device, "r")
 
     if args.store and args.restore:
         print("Cannot store and restore values at the same time!")
         sys.exit(1)
     elif args.store:
         print("Storing...")
-        store_ctrls(dev)
+        store_ctrls(device)
         sys.exit(0)
     elif args.restore:
         print("Restoring...")
-        restore_ctrls(dev)
-        sys.exit(0)
-    vctrl = VidController(dev)
-
-    def vidctrl_exit():
-        vctrl.end()
+        restore_ctrls(device)
         sys.exit(0)
 
-    def sigint_handler(sig, f):
-        vidctrl_exit()
+    app = App(device)
 
-    signal.signal(signal.SIGINT, sigint_handler)
-
-    vctrl.add_key('q', "Exit the program", lambda: vidctrl_exit())
-    vctrl.add_key('?', "Enter/Exit help", lambda: vctrl.toggle_help())
-    vctrl.add_key('j', "Next entry", lambda: vctrl.next())
-    vctrl.add_key('k', "Previous entry", lambda: vctrl.prev())
-    vctrl.add_key('u', "Decrease by 0.1%", lambda: vctrl.inc(-0.1))
-    vctrl.add_key('U', "Decrease by 0.5%", lambda: vctrl.inc(-0.5))
-    vctrl.add_key('h', "Decrease by 1%", lambda: vctrl.inc(-1))
-    vctrl.add_key('H', "Decrease by 10%", lambda: vctrl.inc(-10))
-    vctrl.add_key('p', "Increase by 0.1%", lambda: vctrl.inc(0.1))
-    vctrl.add_key('P', "Increase by 0.5%", lambda: vctrl.inc(0.5))
-    vctrl.add_key('l', "Increase by 1%", lambda: vctrl.inc(1))
-    vctrl.add_key('L', "Increase by 10%", lambda: vctrl.inc(10))
-    vctrl.add_key('s', "Save changes", lambda: store_ctrls(dev))
-    vctrl.add_key('r', "Load stored", lambda: restore_ctrls(dev))
-
-    vctrl.add_key(chr(258), "Next entry", lambda: vctrl.next(),
-                  display="↓")  # down arrow
-    vctrl.add_key(chr(259), "Previous entry",
-                  lambda: vctrl.prev(),   display="↑")  # up arrow
-    vctrl.add_key(',',      "Decrease by 0.1%", lambda: vctrl.inc(-0.1))
-    vctrl.add_key('<',      "Decrease by 0.5%", lambda: vctrl.inc(-0.5))
-    vctrl.add_key(chr(260), "Decrease by 1%",
-                  lambda: vctrl.inc(-1),  display="←")  # left arrow
-    vctrl.add_key(chr(393), "Decrease by 10%",
-                  lambda: vctrl.inc(-10), display="⇇")  # shift+left arrow
-    vctrl.add_key('.',      "Increase by 0.1%", lambda: vctrl.inc(0.1))
-    vctrl.add_key('>',      "Increase by 0.5%", lambda: vctrl.inc(0.5))
-    vctrl.add_key(chr(261), "Increase by 1%", lambda: vctrl.inc(
-        1),   display="→")  # right arrow
-    vctrl.add_key(chr(402), "Increase by 10%", lambda: vctrl.inc(
-        10),  display="⇉")  # shift+right arrow
+    signal.signal(signal.SIGINT, lambda s, f: app.end())
 
     while True:
-        vctrl.draw()
+        app.draw()
         try:
-            c = chr(vctrl.getch())
+            c = chr(app.getch())
         except Exception:
             continue
 
-        if c in vctrl.key_handlers.keys():
-            vctrl.key_handlers[c].callback()
+        app.on_keypress(c)
 
 
 if __name__ == "__main__":
+    KeyBind(App, "q", App.end, "quit app")
+    KeyBind(App, "?", App.help, "toggle help")
+    KeyBind(VideoController, "k", VideoController.prev,
+            "select previous control")
+    KeyBind(
+        VideoController,
+        KEY_UP,
+        VideoController.prev,
+        "select previous control",
+        "↑",
+    )
+    KeyBind(VideoController, "j", VideoController.next, "select next control")
+    KeyBind(
+        VideoController,
+        KEY_DOWN,
+        VideoController.next,
+        "select next control",
+        "↓",
+    )
+    KeyBind(IntCtrl, "h", lambda s: s.inc(-1), "decrease value")
+    KeyBind(IntCtrl, KEY_LEFT, lambda s: s.inc(-1), "decrease value", "←")
+    KeyBind(IntCtrl, "l", lambda s: s.inc(1), "increase value")
+    KeyBind(IntCtrl, KEY_RIGHT, lambda s: s.inc(1), "increase value", "→")
+    KeyBind(BoolCtrl, "h", BoolCtrl.false, "set value false")
+    KeyBind(BoolCtrl, KEY_LEFT, BoolCtrl.false, "set value false", "←")
+    KeyBind(BoolCtrl, "l", BoolCtrl.true, "set value true")
+    KeyBind(BoolCtrl, KEY_RIGHT, BoolCtrl.true, "set value true", "→")
+    KeyBind(BoolCtrl, "\n", BoolCtrl.neg, "negate value", "⏎")
+    KeyBind(ButtonCtrl, "\n", ButtonCtrl.click, "click button", "⏎")
+    KeyBind(MenuCtrl, "h", MenuCtrl.prev, "previous choice")
+    KeyBind(MenuCtrl, KEY_LEFT, MenuCtrl.prev, "previous choice", "←")
+    KeyBind(MenuCtrl, "l", MenuCtrl.next, "next choice")
+    KeyBind(MenuCtrl, KEY_RIGHT, MenuCtrl.next, "next choice", "→")
+
     main()
