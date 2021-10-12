@@ -13,6 +13,7 @@ setup(
     description="Simple TUI to control V4L2 cameras",
     author_email='contact@antmicro.com',
     url='https://github.com/antmicro/pyvidctrl',
+    license='Apache Software License (http://www.apache.org/licenses/LICENSE-2.0)',
     packages=['pyvidctrl'],
     entry_points={
         'console_scripts': [
@@ -24,7 +25,7 @@ setup(
     classifiers=[
         'Environment :: Console',
         'Intended Audience :: Developers',
-        'License :: MIT',
+        'License :: OSI Approved :: Apache Software License',
         'Operating System :: Linux',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
