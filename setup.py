@@ -8,7 +8,7 @@ except ImportError:
 
 setup(
     name='pyvidctrl',
-    version='0.1',
+    version='1.0',
     author='Antmicro Ltd',
     description="Simple TUI to control V4L2 cameras",
     author_email='contact@antmicro.com',
