@@ -1,6 +1,15 @@
 import curses
 
 
+def safe_addstr(window, y, x, string, attr=None):
+    try:
+        window.addstr(y, x, string, attr or curses.color_pair(0))
+    except curses.error:
+        # curses by design throw exception after writing to lower right corner
+        # https://docs.python.org/3/library/curses.html#curses.window.addstr
+        pass
+
+
 class KeyBind:
     KEYBINDS = []
 
@@ -120,7 +129,7 @@ class Label(Widget):
         elif self.align == "right":
             render = self.text.rjust(w)
 
-        window.addstr(y, x, render, color)
+        safe_addstr(window, y, x, render, color)
 
 
 class TextField(Widget):
@@ -151,9 +160,9 @@ class TextField(Widget):
         f = color | curses.A_ITALIC
 
         if self.in_edit:
-            window.addstr(y, x, render, f | curses.A_REVERSE)
+            safe_addstr(window, y, x, render, f | curses.A_REVERSE)
         else:
-            window.addstr(y, x, render, f)
+            safe_addstr(window, y, x, render, f)
 
     def edit(self):
         """
@@ -191,7 +200,7 @@ class Checkbox(Widget):
 
     def draw(self, window, w, h, x, y, color):
         render = ("[x]" if self.value else "[ ]").center(w)
-        window.addstr(y, x, render, color)
+        safe_addstr(window, y, x, render, color)
 
 
 class TrueFalse(Widget):
@@ -258,7 +267,7 @@ class Menu(Widget):
         if w < len(middle) + 2:
             middle = middle[:w - 3] + "…"
         render = pre + middle.center(w - 2) + post
-        window.addstr(y, x, render, color)
+        safe_addstr(window, y, x, render, color)
 
 
 class Bar(Widget):
@@ -276,8 +285,9 @@ class Bar(Widget):
         filled_w = round(w * (self.value - self.min) / (self.max - self.min))
         empty_w = w - filled_w
 
-        window.addstr(y, x, " " * filled_w, color | curses.A_REVERSE)
-        window.addstr(y, x + filled_w, " " * empty_w, curses.color_pair(7))
+        safe_addstr(window, y, x, " " * filled_w, color | curses.A_REVERSE)
+        safe_addstr(window, y, x + filled_w, " " * empty_w,
+                    curses.color_pair(7))
 
 
 class BarLabeled(Bar):
@@ -303,8 +313,8 @@ class BarLabeled(Bar):
         else:
             empty_color = curses.color_pair(7)
 
-        window.addstr(y, x, render[:filled_w], color | curses.A_REVERSE)
-        window.addstr(y, x + filled_w, render[filled_w:], empty_color)
+        safe_addstr(window, y, x, render[:filled_w], color | curses.A_REVERSE)
+        safe_addstr(window, y, x + filled_w, render[filled_w:], empty_color)
 
 
 class Button(Widget):
@@ -317,7 +327,7 @@ class Button(Widget):
 
     def draw(self, window, w, h, x, y, color):
         render = "[" + self.text.center(w - 2) + "]"
-        window.addstr(y, x, render, color)
+        safe_addstr(window, y, x, render, color)
 
 
 class TabbedView(Widget):

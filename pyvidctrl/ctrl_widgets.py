@@ -438,22 +438,22 @@ class BitmaskCtrl(CtrlWidget):
 
             if self.in_edit:
                 left_w = (w - len(render) + 1) // 2
-                window.addstr(y, x, " " * left_w, color)
+                safe_addstr(window, y, x, " " * left_w, color)
                 x += left_w
 
                 sel = self.selected
 
-                window.addstr(y, x, render[:sel], color)
+                safe_addstr(window, y, x, render[:sel], color)
                 x += sel
-                window.addstr(y, x, render[sel], color | curses.A_REVERSE)
+                safe_addstr(window, y, x, render[sel], color | curses.A_REVERSE)
                 x += 1
-                window.addstr(y, x, render[sel + 1:], color)
+                safe_addstr(window, y, x, render[sel + 1:], color)
                 x += len(render) - sel - 1
 
                 right_w = w - len(render) - left_w
-                window.addstr(y, x, " " * right_w, color)
+                safe_addstr(window, y, x, " " * right_w, color)
             else:
-                window.addstr(y, x, render.center(w), color)
+                safe_addstr(window, y, x, render.center(w), color)
 
         def set(self, char):
             sel = self.selected
