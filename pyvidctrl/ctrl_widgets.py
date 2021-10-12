@@ -501,7 +501,8 @@ class BitmaskCtrl(CtrlWidget):
 
                 safe_addstr(window, y, x, render[:sel], color)
                 x += sel
-                safe_addstr(window, y, x, render[sel], color | curses.A_REVERSE)
+                safe_addstr(window, y, x, render[sel],
+                            color | curses.A_REVERSE)
                 x += 1
                 safe_addstr(window, y, x, render[sel + 1:], color)
                 x += len(render) - sel - 1
