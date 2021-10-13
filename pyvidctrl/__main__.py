@@ -144,7 +144,11 @@ class App(Widget):
         for name, ctrls in self.ctrls.items():
             ctrl_widgets = []
             for ctrl in ctrls:
-                ctrl_widgets.append(CtrlWidget.create(device, ctrl))
+                try:
+                    ctrl_widgets.append(CtrlWidget.create(device, ctrl))
+                except KeyError:
+                    # XXX quietly skip unsupported control types
+                    continue
             if 0 < len(ctrl_widgets):
                 video_controllers.append(VideoController(device, ctrl_widgets))
                 tab_titles.append(name)
