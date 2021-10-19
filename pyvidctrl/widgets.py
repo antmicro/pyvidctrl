@@ -10,6 +10,13 @@ def safe_addstr(window, y, x, string, attr=None):
         pass
 
 
+def calc_width(current, total):
+    try:
+        return round(current / total)
+    except ZeroDivisionError:
+        return 0
+
+
 class KeyBind:
     KEYBINDS = []
 
@@ -97,7 +104,7 @@ class Row(Widget):
             if i == len(self.widgets) - 1:
                 widget_w = w - total
             else:
-                widget_w = round(w * col / sum(self.columns))
+                widget_w = calc_width(w * col, sum(self.columns))
             if widget_w > 0:
                 widget.draw(window, widget_w, h, x + total, y, color)
                 total += widget_w
@@ -284,7 +291,8 @@ class Bar(Widget):
         self.max = max
 
     def draw(self, window, w, h, x, y, color):
-        filled_w = round(w * (self.value - self.min) / (self.max - self.min))
+        filled_w = calc_width(w * (self.value - self.min),
+                              (self.max - self.min))
         empty_w = w - filled_w
 
         safe_addstr(window, y, x, " " * filled_w, color | curses.A_REVERSE)
@@ -307,7 +315,8 @@ class BarLabeled(Bar):
         else:
             render = text.center(w)
 
-        filled_w = round(w * (self.value - self.min) / (self.max - self.min))
+        filled_w = calc_width(w * (self.value - self.min),
+                              (self.max - self.min))
 
         # if widget is selected
         if color == curses.color_pair(3) | curses.A_BOLD:
