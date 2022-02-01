@@ -107,11 +107,11 @@ def query_ctrls(dev):
 
 def query_driver(dev):
     try:
-        cp = v4l2.v4l2_capability()
-        fcntl.ioctl(dev, v4l2.VIDIOC_QUERYCAP, cp)
+        cp = v4l2_capability()
+        ioctl(dev, VIDIOC_QUERYCAP, cp)
         return cp.driver
     except Exception:
-        return "unknown"
+        return b"unknown"
 
 
 class App(Widget):
