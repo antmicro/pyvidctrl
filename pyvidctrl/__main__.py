@@ -117,20 +117,6 @@ def query_driver(dev):
 class App(Widget):
     def __init__(self, device):
         self.running = True
-        self.win = curses.initscr()
-
-        curses.start_color()
-        curses.noecho()
-        curses.curs_set(False)
-        self.win.keypad(True)
-        curses.halfdelay(10)
-
-        curses.init_pair(1, curses.COLOR_BLUE, curses.COLOR_BLACK)
-        curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
-        curses.init_pair(3, curses.COLOR_YELLOW, curses.COLOR_BLACK)
-        curses.init_pair(7, curses.COLOR_WHITE, 236)
-        curses.init_pair(8, curses.COLOR_YELLOW, 236)
-
         self.in_help = False
 
         self.device = device
@@ -154,6 +140,21 @@ class App(Widget):
                 tab_titles.append(name)
 
         self.video_controller_tabs = TabbedView(video_controllers, tab_titles)
+
+    def start_tui(self):
+        self.win = curses.initscr()
+
+        curses.start_color()
+        curses.noecho()
+        curses.curs_set(False)
+        self.win.keypad(True)
+        curses.halfdelay(10)
+
+        curses.init_pair(1, curses.COLOR_BLUE, curses.COLOR_BLACK)
+        curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
+        curses.init_pair(3, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+        curses.init_pair(7, curses.COLOR_WHITE, 236)
+        curses.init_pair(8, curses.COLOR_YELLOW, 236)
 
     def getch(self):
         return self.win.getch()
@@ -563,19 +564,17 @@ def main():
     app = App(device)
 
     if args.store and args.restore:
-        app.end()
         print("Cannot store and restore values at the same time!")
         return 1
     elif args.store:
-        app.end()
         print("Storing...")
         return app.store_ctrls()
     elif args.restore:
-        app.end()
         print("Restoring...")
         return app.restore_ctrls()
 
     signal.signal(signal.SIGINT, lambda s, f: app.end())
+    app.start_tui()
 
     while app.running:
         app.draw()
