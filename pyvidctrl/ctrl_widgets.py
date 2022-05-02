@@ -24,7 +24,7 @@ class CtrlWidget(Row):
         self.device = device
         self.ctrl = ctrl
 
-        self.name = ctrl.name.decode("ascii")
+        self.name = ctrl.name.decode("utf-8")
         self.label = Label(self.name)
         self.widget = Label("Not implemented!", align="center")
 
@@ -231,7 +231,7 @@ class MenuCtrl(CtrlWidget):
             querymenu.index = i
             try:
                 ioctl(device, VIDIOC_QUERYMENU, querymenu)
-                options[i] = querymenu.name.decode("ascii")
+                options[i] = querymenu.name.decode("utf-8")
             except OSError:
                 # querymenu can fail for given index, but there can
                 # still be more valid indexes
@@ -417,7 +417,7 @@ class StringCtrl(CtrlWidget):
         except OSError:
             return None
 
-        return ectrl.string.decode("ascii")
+        return ectrl.string.decode("utf-8")
 
     @value.setter
     def value(self, value):
@@ -427,7 +427,7 @@ class StringCtrl(CtrlWidget):
 
         ectrl = v4l2_ext_control()
         ectrl.id = self.ctrl.id
-        ectrl.string = value.encode("ascii")
+        ectrl.string = value.encode("utf-8")
         ectrl.size = self.ctrl.elem_size
 
         ectrls = v4l2_ext_controls()

@@ -58,7 +58,7 @@ def query_v4l2_ctrls(dev):
             break
 
         if ctrl.type == V4L2_CTRL_TYPE_CTRL_CLASS:
-            current_class = ctrl.name.decode("ascii")
+            current_class = ctrl.name.decode("utf-8")
             controls[current_class] = []
 
         controls[current_class].append(ctrl)
@@ -207,7 +207,7 @@ class App(Widget):
 
     def store_ctrls(self):
         driver = query_driver(self.device)
-        fname = ".pyvidctrl-" + driver.decode("ascii")
+        fname = ".pyvidctrl-" + driver.decode("utf-8")
 
         if not hasattr(self, "video_controller_tabs"):
             print(f"WARNING: Device {driver.decode('ascii')} has no controls")
@@ -232,7 +232,7 @@ class App(Widget):
 
     def restore_ctrls(self):
         driver = query_driver(self.device)
-        fname = ".pyvidctrl-" + driver.decode("ascii")
+        fname = ".pyvidctrl-" + driver.decode("utf-8")
 
         try:
             with open(fname, "r") as fd:
