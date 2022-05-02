@@ -150,11 +150,15 @@ class App(Widget):
         self.win.keypad(True)
         curses.halfdelay(10)
 
-        curses.init_pair(1, curses.COLOR_BLUE, curses.COLOR_BLACK)
-        curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
-        curses.init_pair(3, curses.COLOR_YELLOW, curses.COLOR_BLACK)
-        curses.init_pair(7, curses.COLOR_WHITE, 236)
-        curses.init_pair(8, curses.COLOR_YELLOW, 236)
+        try:
+            curses.init_pair(1, curses.COLOR_BLUE, curses.COLOR_BLACK)
+            curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
+            curses.init_pair(3, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+            curses.init_pair(7, curses.COLOR_WHITE, 236)
+            curses.init_pair(8, curses.COLOR_YELLOW, 236)
+        except Exception:
+            # continue with the default settings
+            pass
 
     def getch(self):
         return self.win.getch()
