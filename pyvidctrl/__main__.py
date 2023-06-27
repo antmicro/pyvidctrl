@@ -572,13 +572,13 @@ def main():
     if args.store and args.restore:
         print("Cannot store and restore values at the same time!")
         return 1
-    elif args.store is not True:
+    elif isinstance(args.store, str):
         print("Storing...")
         return app.store_ctrls(args.store)
     elif args.store:
         print("Storing...")
         return app.store_ctrls()
-    elif args.restore is not True:
+    elif isinstance(args.restore, str):
         print("Restoring...")
         return app.restore_ctrls(args.restore)
     elif args.restore:
