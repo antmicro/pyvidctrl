@@ -51,6 +51,7 @@ class KeyBind:
 
 
 class Widget:
+
     @property
     def value(self):
         return self._value
@@ -93,6 +94,7 @@ class Row(Widget):
     Last widget in row, gets remaining width to
     fill given space.
     """
+
     def __init__(self, *widgets, columns=None):
         self.widgets = list(widgets)
         self.columns = columns or [1 for _ in widgets]
@@ -117,6 +119,7 @@ class Label(Widget):
     When there is not enough space, it is trimmed
     and one character '…' ellipsis is added at the end.
     """
+
     def __init__(self, text="", align="left"):
         assert align in ["left", "center", "right"]
         self.text = str(text)
@@ -146,6 +149,7 @@ class TextField(Widget):
     Requires another widget witch will catch events
     for it and manipulate its state.
     """
+
     def __init__(self, value="", align="left"):
         assert align in ["left", "center", "right"]
         self.value = str(value)
@@ -202,6 +206,7 @@ class Checkbox(Widget):
     Stores boolean and depending on value
     draws empty or checked box.
     """
+
     def __init__(self, value=False):
         self.value = value
 
@@ -216,6 +221,7 @@ class TrueFalse(Widget):
     Draws '[ ] False [ ] True' and depending on value
     checks box of one of them
     """
+
     def __init__(self, value=False):
         self.value = value
 
@@ -241,6 +247,7 @@ class Menu(Widget):
     `< option text >' and if the selected option
     is first or last, hides one of the arrows.
     """
+
     def __init__(self, options={}, selected=None):
         self.options = options
         self.keys = list(options.keys())
@@ -285,6 +292,7 @@ class Bar(Widget):
     Displays a number selection, by showing
     a circle on a number line.
     """
+
     def __init__(self, min, max, value=None):
         self.value = value if value is not None else min
         self.min = min
@@ -302,6 +310,7 @@ class Bar(Widget):
 
 class BarLabeled(Bar):
     """Bar containing a label"""
+
     def __init__(self, min, max, value=None, label_position="left"):
         super().__init__(min, max, value)
 
@@ -333,6 +342,7 @@ class Button(Widget):
     Simple button
     Right now it's just a label inside of square brackets
     """
+
     def __init__(self, text):
         self.text = text
 
@@ -342,6 +352,7 @@ class Button(Widget):
 
 
 class TabbedView(Widget):
+
     def __init__(self, widgets, titles=None, selected=None):
         assert 0 < len(widgets)
         self.widgets = widgets

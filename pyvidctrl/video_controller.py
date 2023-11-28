@@ -6,6 +6,7 @@ from .ctrl_widgets import *
 
 class VideoController(Widget):
     """Aggregates multiple CtrlWigets, manages and draws them."""
+
     def __init__(self, device, ctrls):
         self.ctrls = [c for c in ctrls if not isinstance(c, CtrlClassCtrl)]
         self.device = device

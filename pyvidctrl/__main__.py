@@ -115,6 +115,7 @@ def query_driver(dev):
 
 
 class App(Widget):
+
     def __init__(self, device):
         self.running = True
         self.in_help = False
@@ -539,7 +540,8 @@ def main():
         nargs='?',
         const=True,
         default=False,
-        help="Store current parameter values. Optionally takes a filename as an argument and saves to that file. If no filename is specified, it saves to a file named '.pyvidctrl-' followed by the driver name.",
+        help=
+        "Store current parameter values. Optionally takes a filename as an argument and saves to that file. If no filename is specified, it saves to a file named '.pyvidctrl-' followed by the driver name.",
     )
     parser.add_argument(
         "-r",
@@ -547,7 +549,8 @@ def main():
         nargs='?',
         const=True,
         default=False,
-        help="Restore current parameter values. Optionally takes a filename as an argument and restores from that file. If no filename is specified, it restores from a file named '.pyvidctrl-' followed by the driver name.",
+        help=
+        "Restore current parameter values. Optionally takes a filename as an argument and restores from that file. If no filename is specified, it restores from a file named '.pyvidctrl-' followed by the driver name.",
     )
     parser.add_argument(
         "-d",
