@@ -35,6 +35,15 @@ Features vi-like keybindings.
 |   ⏎   | negate value / click button                              |
 
 
+## Command Line Options
+
+| Option | Description                                                                                             |
+|--------|---------------------------------------------------------------------------------------------------------|
+| -r     | Restore current parameter values. Optionally takes a filename as an argument and restores from that file. If no filename is specified, it restores from a file named '.pyvidctrl-' followed by the driver name. |
+| -s     | Store current parameter values. Optionally takes a filename as an argument and saves to that file. If no filename is specified, it saves to a file named '.pyvidctrl-' followed by the driver name. |
+| -d     | Specifies the path to the camera device node or its ID. Default is "/dev/video0".                      |
+
+
 ## Installation
 
     pip install git+https://github.com/antmicro/pyvidctrl

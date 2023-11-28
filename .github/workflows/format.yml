@@ -1,0 +1,24 @@
+name: Code Quality Checks
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install yapf
+        run: pip install yapf
+      - name: Format the code
+        run: |
+          python -m yapf -p -i pyvidctrl/*
+          test $(git status --porcelain | wc -l) -eq 0 || { git diff; false; }

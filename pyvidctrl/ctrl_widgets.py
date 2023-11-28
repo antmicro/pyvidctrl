@@ -144,6 +144,7 @@ class IntCtrl(CtrlWidget):
     Integer type control widget
     Uses LabeledBar to display its value
     """
+
     def __init__(self, device, ctrl):
         super().__init__(device, ctrl)
         self.bar = BarLabeled(ctrl.minimum, ctrl.maximum, self.value)
@@ -189,6 +190,7 @@ class BoolCtrl(CtrlWidget):
     Boolean type control widget
     Uses TrueFalse to display its value
     """
+
     def __init__(self, device, ctrl):
         super().__init__(device, ctrl)
         self.widgets[2] = TrueFalse(self.value)
@@ -220,6 +222,7 @@ class MenuCtrl(CtrlWidget):
     Menu type control widget
     Uses Menu to display its value
     """
+
     def __init__(self, device, ctrl):
         super().__init__(device, ctrl)
 
@@ -274,6 +277,7 @@ class ButtonCtrl(CtrlWidget):
     Button type control widget
     Uses Button with 'Click me' text
     """
+
     def __init__(self, device, ctrl):
         super().__init__(device, ctrl)
         self.widgets[2] = Button("Click me")
@@ -318,6 +322,7 @@ class Int64Ctrl(IntCtrl):
     Integer64 type control widget
     Same as Integer one, except for statusline
     """
+
     @property
     def value(self):
         ectrl = v4l2_ext_control()
@@ -376,6 +381,7 @@ class CtrlClassCtrl(CtrlWidget):
     Removes second widget to show just its name,
     as it's just a category name control
     """
+
     def __init__(self, device, ctrl):
         super().__init__(device, ctrl)
         self.widgets = [Label(self.name, align="center")]
@@ -396,6 +402,7 @@ class StringCtrl(CtrlWidget):
     When minimum number of characters is not present, then spaces
     are appended at the end.
     """
+
     def __init__(self, device, ctrl):
         super().__init__(device, ctrl)
         self.text_field = TextField(self.value)
@@ -482,7 +489,9 @@ class BitmaskCtrl(CtrlWidget):
     Uses TextField to display its value.
     Limits possible characters to valid hex digits.
     """
+
     class BitmaskEditWidget(Widget):
+
         def __init__(self, value=0):
             self.value = value
             self.in_edit = False
@@ -652,6 +661,7 @@ class IntMenuCtrl(MenuCtrl):
     Just like MenuCtrl, but doesn't decode text representations
     of its values, as they are numbers.
     """
+
     def __init__(self, device, ctrl):
         super().__init__(device, ctrl)
 

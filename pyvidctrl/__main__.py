@@ -115,6 +115,7 @@ def query_driver(dev):
 
 
 class App(Widget):
+
     def __init__(self, device):
         self.running = True
         self.in_help = False
@@ -205,10 +206,9 @@ class App(Widget):
         if should_continue:
             return super().on_keypress(key)
 
-    def store_ctrls(self):
+    def store_ctrls(self, fname=None):
         driver = query_driver(self.device)
-        fname = ".pyvidctrl-" + driver.decode("utf-8")
-
+        fname = fname if fname else ".pyvidctrl-" + driver.decode("utf-8")
         if not hasattr(self, "video_controller_tabs"):
             print(f"WARNING: Device {driver.decode('ascii')} has no controls")
             with open(fname, "w") as fd:
@@ -230,10 +230,9 @@ class App(Widget):
 
         return 0
 
-    def restore_ctrls(self):
+    def restore_ctrls(self, fname=None):
         driver = query_driver(self.device)
-        fname = ".pyvidctrl-" + driver.decode("utf-8")
-
+        fname = fname if fname else ".pyvidctrl-" + driver.decode("utf-8")
         try:
             with open(fname, "r") as fd:
                 config = json.load(fd)
@@ -538,14 +537,20 @@ def main():
     parser.add_argument(
         "-s",
         "--store",
-        action="store_true",
-        help="Store current parameter values",
+        nargs='?',
+        const=True,
+        default=False,
+        help=
+        "Store current parameter values. Optionally takes a filename as an argument and saves to that file. If no filename is specified, it saves to a file named '.pyvidctrl-' followed by the driver name.",
     )
     parser.add_argument(
         "-r",
         "--restore",
-        action="store_true",
-        help="Restore current parameter values",
+        nargs='?',
+        const=True,
+        default=False,
+        help=
+        "Restore current parameter values. Optionally takes a filename as an argument and restores from that file. If no filename is specified, it restores from a file named '.pyvidctrl-' followed by the driver name.",
     )
     parser.add_argument(
         "-d",
@@ -570,9 +575,15 @@ def main():
     if args.store and args.restore:
         print("Cannot store and restore values at the same time!")
         return 1
+    elif isinstance(args.store, str):
+        print("Storing...")
+        return app.store_ctrls(args.store)
     elif args.store:
         print("Storing...")
         return app.store_ctrls()
+    elif isinstance(args.restore, str):
+        print("Restoring...")
+        return app.restore_ctrls(args.restore)
     elif args.restore:
         print("Restoring...")
         return app.restore_ctrls()
